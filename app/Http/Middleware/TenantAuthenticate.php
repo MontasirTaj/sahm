@@ -41,10 +41,18 @@ class TenantAuthenticate
         }
 
         $user = Auth::guard('tenant')->user();
+        // احصل على نسخة حديثة من المستخدم من قاعدة بيانات المستأجر كل طلب لضمان أحدث حالة
+        if ($user) {
+            $freshUser = TenantUser::find($user->id);
+            if ($freshUser) {
+                $user = $freshUser;
+                Auth::guard('tenant')->setUser($freshUser);
+            }
+        }
 
         // إذا كان المستخدم مجبَرًا على تغيير كلمة المرور، امنعه من الوصول إلى أي صفحة أخرى
         // غير صفحة تغيير كلمة المرور وتسجيل الخروج
-        if ($user && ($user->must_change_password ?? false)) {
+        if ($user && (bool) ($user->must_change_password ?? false)) {
             $routeName = $request->route() ? $request->route()->getName() : null;
             $allowedRoutes = [
                 'tenant.subdomain.password.edit',

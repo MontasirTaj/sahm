@@ -24,8 +24,8 @@ class SetTenantConnection
 
         abort_unless($subdomain, 404, 'Tenant subdomain missing');
 
-        // 2️⃣ اجلب tenant من القاعدة الرئيسية
-        $tenant = DB::connection('mysql')
+        // 2️⃣ اجلب tenant من القاعدة الرئيسية (central)
+        $tenant = DB::connection('central')
             ->table('tenants')
             ->where('Subdomain', $subdomain)
             ->where('IsActive', 1)

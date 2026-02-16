@@ -5,20 +5,25 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Laravel\Sanctum\HasApiTokens;
 
 class TenantUser extends Authenticatable
 {
-    use Notifiable, HasRoles;
+    use Notifiable, HasRoles, HasApiTokens;
 
     protected $connection = 'tenant';
     protected $table = 'users';
 
     protected $fillable = [
-        'name', 'email', 'password', 'avatar',
+        'name', 'email', 'password', 'avatar', 'must_change_password',
     ];
 
     protected $hidden = [
         'password', 'remember_token'
+    ];
+
+    protected $casts = [
+        'must_change_password' => 'boolean',
     ];
 
     public function conversations()

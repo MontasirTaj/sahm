@@ -1,0 +1,242 @@
+@extends('layout.master')
+
+@section('content')
+    @php $subdomain = request()->route('subdomain'); @endphp
+    <div class="tenant-page-header mb-3">
+        <div class="card tenant-page-header-card">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="tenant-page-header-title">{{ __('تعديل عرض أسهم') }}</div>
+                    <p class="tenant-page-header-subtitle mb-0">{{ __('قم بتحديث تفاصيل العرض والصور والحالة') }}</p>
+                </div>
+                <div class="tenant-page-header-actions">
+                    <a href="{{ route('tenant.subdomain.shares.index', ['subdomain' => $subdomain]) }}"
+                        class="btn btn-outline-primary">{{ __('رجوع للعروض') }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $e)
+                    <li>{{ $e }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data"
+            action="{{ route('tenant.subdomain.shares.update', ['subdomain' => $subdomain, 'share' => $offer->id]) }}">
+            @csrf
+            @method('PUT')
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>{{ __('العنوان') }}</label>
+                        <input name="title" class="form-control" required value="{{ $offer->title }}">
+                    </div>
+                    <div class="form-group">
+                        <label>{{ __('الوصف') }}</label>
+                        <textarea name="description" class="form-control" rows="4" required>{{ $offer->description }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ __('المدينة') }}</label>
+                        <input name="city" class="form-control" value="{{ $offer->city }}" required>
+                    </div>
+                    {{-- تم حذف العنوان التفصيلي من النموذج --}}
+                    <div class="form-group">
+                        <label class="d-flex align-items-center justify-content-between">
+                            <span>{{ __('صور جديدة') }}</span>
+                            <small class="text-muted">{{ __('حد أقصى 15 صورة') }}</small>
+                        </label>
+                        <div id="offer-images-container"></div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-image">+
+                                {{ __('إضافة صورة') }}</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="btn-remove-image">-
+                                {{ __('إزالة آخر صورة') }}</button>
+                            <span class="small text-muted ml-2" id="offer-images-count">0/15</span>
+                        </div>
+                        @if (is_array($offer->media) && count($offer->media))
+                            <div class="mt-3">
+                                <label class="d-block">{{ __('الصور الحالية') }}</label>
+                                <div class="d-flex flex-wrap" id="current-media">
+                                    @foreach ($offer->media as $img)
+                                        <div class="position-relative mr-2 mb-2 media-item" data-path="{{ $img }}"
+                                            style="width:120px;height:90px;overflow:hidden;border:1px solid #eee;border-radius:6px;">
+                                            <img src="{{ asset('storage/' . $img) }}" alt="img"
+                                                style="width:100%;height:100%;object-fit:cover;">
+                                            <button type="button" class="btn btn-sm btn-danger position-absolute"
+                                                title="{{ __('حذف') }}"
+                                                style="top:4px;{{ app()->getLocale() === 'ar' ? 'left' : 'right' }}:4px"
+                                                data-action="remove-image">&times;</button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>{{ __('سعر السهم') }}</label>
+                        <input name="price_per_share" type="number" step="0.01" min="0" class="form-control"
+                            required value="{{ $offer->price_per_share }}">
+                    </div>
+                    <div class="form-group">
+                        <label>{{ __('إجمالي الأسهم') }}</label>
+                        <input name="total_shares" type="number" min="1" class="form-control" required
+                            value="{{ $offer->total_shares }}">
+                    </div>
+                    <div class="form-group">
+                        <label>{{ __('الأسهم المتاحة') }}</label>
+                        <input name="available_shares" type="number" min="0" class="form-control" required
+                            value="{{ $offer->available_shares }}">
+                    </div>
+                    {{-- تم إخفاء/حذف العملة من النموذج --}}
+                    <div class="form-group">
+                        <label>{{ __('الحالة') }}</label>
+                        <select name="status" class="form-control" required>
+                            @foreach (['draft', 'active', 'paused', 'completed', 'cancelled'] as $s)
+                                <option value="{{ $s }}" @selected($offer->status === $s)>{{ $s }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary">{{ __('حفظ ومزامنة') }}</button>
+            <a href="{{ route('tenant.subdomain.shares.index', ['subdomain' => $subdomain]) }}"
+                class="btn btn-light">{{ __('إلغاء') }}</a>
+        </form>
+    </div>
+@endsection
+
+@push('custom-scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var container = document.getElementById('offer-images-container');
+            var addBtn = document.getElementById('btn-add-image');
+            var removeBtn = document.getElementById('btn-remove-image');
+            var countEl = document.getElementById('offer-images-count');
+            var maxImages = 15;
+
+            function updateCount() {
+                var current = container.querySelectorAll('input[type=file]').length;
+                if (countEl) countEl.textContent = current + '/' + maxImages;
+                removeBtn.disabled = current === 0;
+                addBtn.disabled = current >= maxImages;
+            }
+
+            function addImageInput() {
+                var current = container.querySelectorAll('input[type=file]').length;
+                if (current >= maxImages) return;
+                var wrapper = document.createElement('div');
+                wrapper.className = 'd-flex align-items-center mb-2';
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.name = 'images[]';
+                input.accept = 'image/*';
+                input.className = 'form-control';
+                input.style.maxWidth = '380px';
+                var removeInline = document.createElement('button');
+                removeInline.type = 'button';
+                removeInline.className = 'btn btn-sm btn-outline-danger ml-2';
+                removeInline.textContent = '{{ __('إزالة') }}';
+                removeInline.addEventListener('click', function() {
+                    wrapper.parentNode.removeChild(wrapper);
+                    updateCount();
+                });
+                wrapper.appendChild(input);
+                wrapper.appendChild(removeInline);
+                container.appendChild(wrapper);
+                updateCount();
+            }
+
+            addBtn && addBtn.addEventListener('click', addImageInput);
+            removeBtn && removeBtn.addEventListener('click', function() {
+                var groups = container.querySelectorAll('div.d-flex');
+                if (groups.length) {
+                    var last = groups[groups.length - 1];
+                    last.parentNode.removeChild(last);
+                    updateCount();
+                }
+            });
+
+            updateCount();
+
+            // Handle media delete
+            const mediaWrap = document.getElementById('current-media');
+            if (mediaWrap) {
+                mediaWrap.addEventListener('click', function(e) {
+                    const btn = e.target.closest('button[data-action="remove-image"]');
+                    if (!btn) return;
+                    const item = btn.closest('.media-item');
+                    const path = item?.dataset?.path;
+                    if (!path) return;
+                    if (!confirm('{{ __('حذف هذه الصورة؟') }}')) return;
+                    const url =
+                        '{{ route('tenant.subdomain.shares.media.remove', ['subdomain' => $subdomain, 'share' => $offer->id]) }}';
+                    const fd = new FormData();
+                    fd.append('image', path);
+                    fd.append('_token', '{{ csrf_token() }}');
+                    fetch(url, {
+                            method: 'POST',
+                            body: fd,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(r => {
+                            if (!r.ok) throw new Error('fail');
+                            return r.json();
+                        })
+                        .then(() => {
+                            item.remove();
+                            showToast('{{ __('تم حذف الصورة') }}');
+                        })
+                        .catch(() => {
+                            showToast('{{ __('تعذر حذف الصورة') }}', true);
+                        });
+                });
+            }
+
+            function showToast(message, isError) {
+                let toast = document.getElementById('edit-offer-toast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'edit-offer-toast';
+                    toast.className = 'toast align-items-center text-bg-' + (isError ? 'danger' : 'success') +
+                        ' border-0 position-fixed bottom-0 end-0 m-3';
+                    toast.setAttribute('role', 'alert');
+                    toast.setAttribute('aria-live', 'assertive');
+                    toast.setAttribute('aria-atomic', 'true');
+                    toast.innerHTML =
+                        '<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>';
+                    document.body.appendChild(toast);
+                }
+                toast.querySelector('.toast-body').textContent = message;
+                const t = new bootstrap.Toast(toast, {
+                    delay: 1800
+                });
+                t.show();
+            }
+        });
+    </script>
+    <style>
+        /* إخفاء أسهم الحقول الرقمية */
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+@endpush

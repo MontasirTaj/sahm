@@ -37,6 +37,10 @@
                                     class="btn btn-outline-secondary btn-sm">
                                     {{ __('app.roles_with_permissions_link') }}
                                 </a>
+                                <a href="{{ route('tenant.subdomain.roles.mapping', ['subdomain' => request()->route('subdomain')]) }}"
+                                    class="btn btn-outline-primary btn-sm ms-2">
+                                    {{ __('ربط الأدوار بالصلاحيات') }}
+                                </a>
                             </div>
                             <p class="text-muted mb-3">{{ __('app.roles_intro') }}</p>
                             <form method="POST"
@@ -132,14 +136,30 @@
                                             <tr>
                                                 <td>{{ $role->name }}</td>
                                                 <td>
-                                                    @if ($role->permissions->isEmpty())
-                                                        <span class="text-muted">{{ __('app.permissions_list') }}</span>
-                                                    @else
-                                                        @foreach ($role->permissions as $permission)
-                                                            <span
-                                                                class="badge bg-primary me-1 mb-1">{{ $permission->name }}</span>
+                                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
+                                                        @foreach ($permissions as $perm)
+                                                            @php $has = $role->permissions->contains('id', $perm->id); @endphp
+                                                            <div class="col">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center border rounded p-2">
+                                                                    <span class="me-3">{{ $perm->name }}</span>
+                                                                    <form method="POST"
+                                                                        action="{{ $has ? route('tenant.subdomain.roles.detach', ['subdomain' => request()->route('subdomain')]) : route('tenant.subdomain.roles.attach', ['subdomain' => request()->route('subdomain')]) }}">
+                                                                        @csrf
+                                                                        <input type="hidden" name="role_id"
+                                                                            value="{{ $role->id }}">
+                                                                        <input type="hidden" name="permission_id"
+                                                                            value="{{ $perm->id }}">
+                                                                        <div class="form-check form-switch">
+                                                                            <input class="form-check-input" type="checkbox"
+                                                                                role="switch" onchange="this.form.submit()"
+                                                                                {{ $has ? 'checked' : '' }}>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
                                                         @endforeach
-                                                    @endif
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @empty

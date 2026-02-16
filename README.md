@@ -21,6 +21,28 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Central Database (Multi‑Tenant SaaS)
+
+This project uses a dedicated "central" database to manage tenants, plans, subscriptions, payments, and the real‑estate shares marketplace (offers, buyers, holdings, operations). Configure the central connection via environment variables:
+
+- `DB_CENTRAL_HOST`
+- `DB_CENTRAL_PORT`
+- `DB_CENTRAL_DATABASE`
+- `DB_CENTRAL_USERNAME`
+- `DB_CENTRAL_PASSWORD`
+
+Run the central migrations (tracking table will use the central connection):
+
+```bash
+php artisan migrate --database=central
+```
+
+Run tenant/default migrations as usual (for app/tenant DB):
+
+```bash
+php artisan migrate
+```
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.

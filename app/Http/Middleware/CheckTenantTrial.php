@@ -31,7 +31,7 @@ class CheckTenantTrial
         }
 
         try {
-            $tenant = Tenant::on('mysql')->where('Subdomain', $subdomain)->first();
+            $tenant = Tenant::on('central')->where('Subdomain', $subdomain)->first();
         } catch (\Throwable $e) {
             Log::error('CheckTenantTrial: failed to load tenant', [
                 'subdomain' => $subdomain,

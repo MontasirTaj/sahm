@@ -90,7 +90,8 @@ class TenantUserController extends Controller
         $user = TenantUser::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password'])
+            'password' => Hash::make($data['password']),
+            'must_change_password' => true,
         ]);
         if (!empty($data['role_id'])) {
             $role = Role::findOrFail($data['role_id']);

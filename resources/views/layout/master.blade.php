@@ -46,17 +46,18 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link
-            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap"
             rel="stylesheet">
     @endif
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/sahmi.css') }}">
     @if (app()->getLocale() === 'ar')
         <link rel="stylesheet" href="{{ asset('css/rtl.css') }}">
     @endif
     <!-- end common css -->
 
     @php
-        $defaultBrandColor = '#102c4f';
+        $defaultBrandColor = '#1A5F3F';
         $brandColor = $defaultBrandColor;
         try {
             if (\Illuminate\Support\Facades\Auth::guard('tenant')->check()) {
@@ -73,7 +74,7 @@
     @stack('style')
     <style>
         body {
-            font-family: 'IBM Plex Sans Arabic', 'Tajawal', 'Instrument Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         .footer.di-footer {

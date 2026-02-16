@@ -65,7 +65,7 @@ class TenantSignupController extends Controller
         $tenant->OwnerName = $validated['OwnerName'] ?? null;
         $tenant->PhoneNumber = $validated['PhoneNumber'] ?? null;
         // Use a temporary unique subdomain until we know TenantID
-        $tenant->Subdomain = 'app-pending-' . $now->format('YmdHis') . '-' . Str::lower(Str::random(5));
+        $tenant->Subdomain = 'sahm-pending-' . $now->format('YmdHis') . '-' . Str::lower(Str::random(5));
         $tenant->Email = $validated['Email'] ?? null;
         $tenant->Address = $validated['Address'] ?? null;
         $tenant->Plan = $validated['Plan'];
@@ -74,7 +74,7 @@ class TenantSignupController extends Controller
         $tenant->Status = 0; // pending
 
         // Assign temporary unique DB fields to satisfy NOT NULL + UNIQUE before first insert
-        $tenant->DBName = 'app_pending_' . $now->format('YmdHis') . '_' . Str::lower(Str::random(6));
+        $tenant->DBName = 'sahm_pending_' . $now->format('YmdHis') . '_' . Str::lower(Str::random(6));
         $tenant->DBUser = 'tenant_user_pending_' . Str::lower(Str::random(6));
         $tenant->DBPassword = Str::random(16);
         $tenant->DBHost = config('database.connections.mysql.host');
@@ -85,10 +85,10 @@ class TenantSignupController extends Controller
 
         // Now set definitive names based on actual TenantID
         $seq = $tenant->TenantID;
-        $tenant->DBName = sprintf('app_%d', $seq);
+        $tenant->DBName = sprintf('sahm_%d', $seq);
         $tenant->DBUser = sprintf('tenant_user_%d', $seq);
         // Keep previously generated password/host/port
-        $tenant->Subdomain = sprintf('app_%d', $seq);
+        $tenant->Subdomain = sprintf('sahm_%d', $seq);
         $tenant->save();
 
         // معالجة خطة مجانية دون Stripe

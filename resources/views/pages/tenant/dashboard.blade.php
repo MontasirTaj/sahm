@@ -33,12 +33,7 @@
                                 <a href="#" class="btn btn-outline-light"
                                     onclick="window.location='{{ route($prefix . '.permissions.index', ['subdomain' => $sub]) }}'">{{ __('app.permissions') }}</a>
                             @endif
-                            @if ($tenantUser && $tenantUser->can('Attachement'))
-                                <a href="#" class="btn btn-outline-light"
-                                    onclick="window.location='{{ route($prefix . '.attachments.index', ['subdomain' => $sub]) }}'">{{ __('app.attachments') }}</a>
-                            @endif
-                            <a href="{{ route($prefix . '.logout', ['subdomain' => $sub]) }}"
-                                class="btn btn-outline-danger"
+                            <a href="{{ route($prefix . '.logout', ['subdomain' => $sub]) }}" class="btn btn-outline-danger"
                                 onclick="event.preventDefault(); document.getElementById('logout-form').submit();">{{ __('app.logout') }}</a>
                             <form id="logout-form" method="POST"
                                 action="{{ route($prefix . '.logout', ['subdomain' => $sub]) }}" class="d-none">@csrf
@@ -107,16 +102,6 @@
                         <div class="tenant-metric-value">
                             {{ $stats['permissions'] ?? 0 }}
                             <span class="tenant-metric-emoji">🔑</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-3 mb-3">
-                    <div class="tenant-metric-card">
-                        <div class="tenant-metric-icon"><i class="mdi mdi-file-upload-outline"></i></div>
-                        <div class="tenant-metric-label">{{ __('app.attachments') }}</div>
-                        <div class="tenant-metric-value">
-                            {{ $stats['attachments'] ?? 0 }}
-                            <span class="tenant-metric-emoji">📎</span>
                         </div>
                     </div>
                 </div>

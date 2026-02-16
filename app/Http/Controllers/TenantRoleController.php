@@ -44,6 +44,32 @@ class TenantRoleController extends Controller
         return back()->with('status', __('تم ربط الصلاحية بالدور'));
     }
 
+    public function detachPermission(Request $request, string $subdomain)
+    {
+        $data = $request->validate(['role_id' => 'required|integer', 'permission_id' => 'required|integer']);
+        $role = Role::findOrFail($data['role_id']);
+        $permission = Permission::findOrFail($data['permission_id']);
+        $role->revokePermissionTo($permission);
+
+        tenant_activity('tenant.roles.detach_permission', 'detach_permission', $role, [
+            'description' => 'تم إلغاء ربط صلاحية من دور',
+            'role' => $role->name,
+            'permission' => $permission->name,
+        ]);
+
+        return back()->with('status', __('تم حذف الصلاحية من الدور'));
+    }
+
+    /**
+     * صفحة ربط الأدوار بالصلاحيات باستخدام مفاتيح تشغيل/إيقاف.
+     */
+    public function mapping(string $subdomain)
+    {
+        $roles = Role::with('permissions')->get();
+        $permissions = Permission::all();
+        return view('pages.tenant.roles.mapping', compact('roles','permissions'));
+    }
+
     public function edit(string $subdomain, int $role)
     {
         $model = Role::findOrFail($role);

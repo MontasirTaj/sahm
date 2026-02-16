@@ -26,8 +26,8 @@ class TenantAuthController extends Controller
             'password.required' => __('كلمة المرور مطلوبة'),
         ]);
 
-        // تأكد أن هذا التينانت ما زال مفعّلًا في قاعدة البيانات الرئيسية
-        $tenant = Tenant::on('mysql')->where('Subdomain', $subdomain)->first();
+        // تأكد أن هذا التينانت ما زال مفعّلًا في قاعدة البيانات الرئيسية (central)
+        $tenant = Tenant::on('central')->where('Subdomain', $subdomain)->first();
 
         if (! $tenant || ! $tenant->IsActive) {
             return back()
@@ -55,8 +55,11 @@ class TenantAuthController extends Controller
         $request->session()->put('tenant_active_subdomain', $subdomain);
         Auth::guard('tenant')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+
+        // حمّل الحالة من قاعدة بيانات المستأجر بشكل مؤكد بعد تسجيل الدخول
+        $fresh = \App\Models\TenantUser::find($user->id);
         // إذا كان المستخدم مجبَرًا على تغيير كلمة المرور، وجّهه مباشرة لصفحة تغيير كلمة المرور
-        if ($user->must_change_password) {
+        if ($fresh && ($fresh->must_change_password ?? false)) {
             return redirect()->route('tenant.subdomain.password.edit', ['subdomain' => $subdomain]);
         }
 

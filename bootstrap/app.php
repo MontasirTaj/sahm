@@ -10,6 +10,7 @@ require_once __DIR__ . '/../app/Helpers/helpers.php';
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // Override default auth middleware to use tenant-aware redirect
             'auth'                  => \App\Http\Middleware\Authenticate::class,
             'tenant.auth'           => \App\Http\Middleware\TenantAuthenticate::class,
+            'tenant.api'            => \App\Http\Middleware\SetTenantFromHeader::class,
             // Spatie permissions middleware aliases (package namespace: Spatie\\Permission\\Middleware)
             'permission'            => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role'                  => \Spatie\Permission\Middleware\RoleMiddleware::class,
