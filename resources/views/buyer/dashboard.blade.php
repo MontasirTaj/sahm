@@ -245,7 +245,11 @@
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <h3 class="mb-1">{{ __('محفظتي الاستثمارية') }}</h3>
-                        <p class="text-muted mb-0">{{ __('إدارة أسهمك ومتابعة عمليات الشراء والبيع') }}</p>
+                        <p class="text-muted mb-0">
+                            <i class="mdi mdi-account-circle me-1"></i>
+                            {{ $buyer->name ?? $user->name }}
+                        </p>
+                        <p class="text-muted mb-0 mt-1">{{ __('إدارة أسهمك ومتابعة عمليات الشراء والبيع') }}</p>
                     </div>
                     <div class="d-flex gap-2">
                         <a href="{{ route('buyer.secondary-market.index') }}" class="btn btn-warning">
@@ -434,6 +438,26 @@
                                 </table>
                             </div>
                         @endif
+
+                        {{-- Secondary Market Info Alert --}}
+                        <div class="alert alert-info mt-3 mb-0"
+                            style="border-radius: 8px; border-left: 4px solid #17a2b8;">
+                            <div class="d-flex align-items-start">
+                                <i class="mdi mdi-information-outline" style="font-size: 1.5rem; margin-left: 12px;"></i>
+                                <div>
+                                    <strong style="font-size: 1.1rem;">ما هو السوق الثانوي؟</strong>
+                                    <p class="mb-2 mt-1" style="line-height: 1.8;">
+                                        السوق الثانوي هو منصة تتيح للمستثمرين بيع أسهمهم لمستثمرين آخرين مباشرة
+                                        (peer-to-peer) دون العودة إلى صاحب العرض الأصلي.
+                                    </p>
+                                    <p class="mb-0" style="line-height: 1.8;">
+                                        <strong><i class="mdi mdi-check-circle text-success"></i> ملاحظة:</strong>
+                                        يمكنك بيع جزء من أسهمك أو كامل الأسهم المملوكة في أي عرض. السعر الذي تحدده سيكون هو
+                                        سعر البيع في السوق الثانوي.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -577,14 +601,22 @@
                                                 <td>{{ $op->id }}</td>
                                                 <td><strong>{{ $op->title }}</strong></td>
                                                 <td>
-                                                    <span
-                                                        class="badge-type badge-{{ $op->type }}">{{ __('operations.type.' . $op->type) }}</span>
+                                                    <span class="badge badge-{{ $op->color }}"
+                                                        style="display: inline-flex; align-items: center; gap: 5px;">
+                                                        <i class="mdi {{ $op->icon }}" style="font-size: 1rem;"></i>
+                                                        <span>{{ $op->type_name }}</span>
+                                                    </span>
                                                 </td>
                                                 <td><span class="badge badge-primary">{{ $op->shares_count }}</span></td>
                                                 <td>{{ number_format($op->amount_total, 2) }} {{ $op->currency }}</td>
                                                 <td>
-                                                    <span
-                                                        class="badge-status badge-{{ $op->status }}">{{ __('operations.status.' . $op->status) }}</span>
+                                                    @if ($op->status === 'completed')
+                                                        <span class="badge badge-success">{{ __('مكتملة') }}</span>
+                                                    @elseif($op->status === 'pending')
+                                                        <span class="badge badge-warning">{{ __('معلقة') }}</span>
+                                                    @else
+                                                        <span class="badge badge-secondary">{{ __($op->status) }}</span>
+                                                    @endif
                                                 </td>
                                                 <td class="date-time-cell">
                                                     @if ($op->created_at)
@@ -705,18 +737,6 @@
                             </div>
                         </div>
 
-                        <div class="alert alert-info mt-3">
-                            <strong><i
-                                    class="mdi mdi-information-outline me-2"></i>{{ __('ما هو السوق الثانوي؟') }}</strong>
-                            <p class="mb-1 mt-2 small">
-                                {{ __('السوق الثانوي هو منصة تتيح للمستثمرين بيع أسهمهم لمستثمرين آخرين مباشرة (peer-to-peer). بعد عرض أسهمك، سيظهر عرضك لجميع المستثمرين المسجلين في المنصة.') }}
-                            </p>
-                            <p class="mb-0 small">
-                                <strong>{{ __('ملاحظة:') }}</strong>
-                                {{ __('يمكنك بيع جزء من أسهمك والاحتفاظ بالباقي.') }}
-                            </p>
-                        </div>
-
                         <div id="sellError" class="alert alert-danger d-none"></div>
                     </div>
                     <div class="modal-footer bg-light">
@@ -748,26 +768,33 @@
                 if (typeData && Object.keys(typeData).length > 0) {
                     const typeLabels = Object.keys(typeData).map(key => {
                         const translations = {
-                            'purchase': '{{ __('operations.type.purchase') }}',
-                            'sale': '{{ __('operations.type.sale') }}',
-                            'transfer': '{{ __('operations.type.transfer') }}'
+                            'purchase': 'شراء',
+                            'sale': 'بيع',
+                            'transfer': 'تحويل'
                         };
                         return translations[key] || key;
                     });
                     const typeValues = Object.values(typeData);
 
                     new Chart(typeChartEl.getContext('2d'), {
-                        type: 'doughnut',
+                        type: 'bar',
                         data: {
                             labels: typeLabels,
                             datasets: [{
+                                label: 'عدد العمليات',
                                 data: typeValues,
                                 backgroundColor: [
                                     'rgba(26, 95, 63, 0.8)',
                                     'rgba(239, 68, 68, 0.8)',
                                     'rgba(59, 130, 246, 0.8)'
                                 ],
-                                borderWidth: 0
+                                borderColor: [
+                                    'rgba(26, 95, 63, 1)',
+                                    'rgba(239, 68, 68, 1)',
+                                    'rgba(59, 130, 246, 1)'
+                                ],
+                                borderWidth: 2,
+                                borderRadius: 8
                             }]
                         },
                         options: {
@@ -775,13 +802,33 @@
                             maintainAspectRatio: false,
                             plugins: {
                                 legend: {
-                                    position: 'bottom',
-                                    labels: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1,
                                         font: {
                                             family: 'Cairo, sans-serif',
                                             size: 12
-                                        },
-                                        padding: 15
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        font: {
+                                            family: 'Cairo, sans-serif',
+                                            size: 12,
+                                            weight: 'bold'
+                                        }
+                                    },
+                                    grid: {
+                                        display: false
                                     }
                                 }
                             }

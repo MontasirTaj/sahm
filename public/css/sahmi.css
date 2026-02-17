@@ -677,3 +677,7 @@ h6 {
     background: linear-gradient(90deg, transparent, var(--border), transparent);
     margin: var(--space-8) 0;
 }
+/* Override Bootstrap reboot.scss line 249 - disable max-width: 100% for images */
+img {
+    max-width: none !important;
+}

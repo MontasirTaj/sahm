@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Central\ShareOperation;
 
 class BuyerDashboardController extends Controller
 {
@@ -25,7 +26,8 @@ class BuyerDashboardController extends Controller
             ->orderByDesc('buyer_holdings.last_transaction_at')
             ->get();
 
-        $operations = DB::connection('central')->table('share_operations')
+        // Use Eloquent to get operations with attributes
+        $operations = ShareOperation::on('central')
             ->join('share_offers', 'share_operations.offer_id', '=', 'share_offers.id')
             ->select('share_operations.*', 'share_offers.title')
             ->where('share_operations.buyer_id', $buyer->id)
@@ -69,7 +71,7 @@ class BuyerDashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        // Get buyer's sale offers
+        // Get buyer's sale offers (only active and with shares > 0)
         $saleOffers = DB::connection('central')->table('buyer_sale_offers')
             ->join('buyer_holdings', 'buyer_sale_offers.holding_id', '=', 'buyer_holdings.id')
             ->join('share_offers', 'buyer_holdings.offer_id', '=', 'share_offers.id')
@@ -78,6 +80,8 @@ class BuyerDashboardController extends Controller
                 'share_offers.title as offer_title'
             )
             ->where('buyer_sale_offers.seller_buyer_id', $buyer->id)
+            ->where('buyer_sale_offers.status', 'active')
+            ->where('buyer_sale_offers.shares_count', '>', 0)
             ->orderByDesc('buyer_sale_offers.created_at')
             ->get();
 

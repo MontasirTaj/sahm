@@ -66,6 +66,16 @@
                         </a>
                     </li>
                 @endif
+            @else
+                {{-- رابط السوق الثانوي متاح للجميع على الصفحة الرئيسية --}}
+                @if (!$isAdminRoute)
+                    <li class="nav-item d-none d-md-flex">
+                        <a href="{{ route('buyer.secondary-market.index') }}"
+                            class="nav-link {{ \Illuminate\Support\Str::startsWith($currentName, 'buyer.secondary-market') ? 'active' : '' }}">
+                            <i class="mdi mdi-shopping"></i> السوق الثانوي
+                        </a>
+                    </li>
+                @endif
             @endif
         </ul>
         <ul class="navbar-nav navbar-nav-right">

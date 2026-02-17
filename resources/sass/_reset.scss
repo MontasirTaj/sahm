@@ -134,3 +134,8 @@ input:focus {
     border-color: transparent;
     outline: none
 }
+
+/* Override Bootstrap reboot.scss line 249 - Fix image max-width issue */
+img {
+    max-width: none !important;
+}

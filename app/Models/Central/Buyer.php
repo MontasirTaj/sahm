@@ -51,4 +51,41 @@ class Buyer extends Model
             ->where('type', 'purchase')
             ->orderBy('created_at', 'desc');
     }
+
+    /**
+     * المحفظة
+     */
+    public function wallet()
+    {
+        return $this->hasOne(BuyerWallet::class, 'buyer_id');
+    }
+
+    /**
+     * جميع التنبيهات
+     */
+    public function notifications()
+    {
+        return $this->hasMany(BuyerNotification::class, 'buyer_id')->orderByDesc('created_at');
+    }
+
+    /**
+     * التنبيهات غير المقروءة
+     */
+    public function unreadNotifications()
+    {
+        return $this->hasMany(BuyerNotification::class, 'buyer_id')
+            ->where('is_read', false)
+            ->orderByDesc('created_at');
+    }
+
+    /**
+     * Get or create wallet
+     */
+    public function getOrCreateWallet()
+    {
+        return $this->wallet ?? $this->wallet()->create([
+            'balance' => 0,
+            'currency' => 'SAR',
+        ]);
+    }
 }

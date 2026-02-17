@@ -205,6 +205,9 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
                 Route::get('market/buyers', [AdminMarketController::class, 'buyers'])->name('market.buyers');
                 Route::get('market/alerts', [AdminMarketController::class, 'alerts'])->name('market.alerts');
                 Route::get('market/alerts-feed', [AdminMarketController::class, 'alertsFeed'])->name('market.alerts.feed');
+
+                // Cities Management
+                Route::resource('cities', \App\Http\Controllers\Admin\CityController::class);
             });
         });
 
@@ -555,6 +558,12 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
             Route::post('register', [\App\Http\Controllers\MarketplaceAuthController::class, 'register'])->name('marketplace.register.post');
             Route::post('logout', [\App\Http\Controllers\MarketplaceAuthController::class, 'logout'])->name('marketplace.logout');
 
+            // السوق الثانوي - متاح للزوار (عرض فقط)
+            Route::prefix('buyer/secondary-market')->as('buyer.secondary-market.')->group(function(){
+                Route::get('/', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'index'])->name('index');
+                Route::get('/offer/{id}', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'show'])->name('show');
+            });
+
             // Investor portfolio (central) - المحفظة الاستثمارية
             Route::middleware('auth:web')->prefix('buyer')->as('buyer.')->group(function(){
                 Route::get('dashboard', [\App\Http\Controllers\BuyerDashboardController::class, 'index'])->name('dashboard');
@@ -562,10 +571,24 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
                 Route::post('profile', [\App\Http\Controllers\BuyerDashboardController::class, 'updateProfile'])->name('profile.update');
                 Route::post('password', [\App\Http\Controllers\BuyerDashboardController::class, 'updatePassword'])->name('password.update');
                 
-                // السوق الثانوي - Secondary Market
+                // المحفظة المالية - Wallet
+                Route::prefix('wallet')->as('wallet.')->group(function(){
+                    Route::get('/', [\App\Http\Controllers\BuyerWalletController::class, 'index'])->name('index');
+                    Route::post('deposit', [\App\Http\Controllers\BuyerWalletController::class, 'deposit'])->name('deposit');
+                    Route::post('withdraw', [\App\Http\Controllers\BuyerWalletController::class, 'withdraw'])->name('withdraw');
+                });
+                
+                // التنبيهات - Notifications
+                Route::prefix('notifications')->as('notifications.')->group(function(){
+                    Route::get('/', [\App\Http\Controllers\BuyerNotificationController::class, 'index'])->name('index');
+                    Route::get('/count', [\App\Http\Controllers\BuyerNotificationController::class, 'count'])->name('count');
+                    Route::get('/latest', [\App\Http\Controllers\BuyerNotificationController::class, 'latest'])->name('latest');
+                    Route::post('/{id}/read', [\App\Http\Controllers\BuyerNotificationController::class, 'markAsRead'])->name('read');
+                    Route::post('/read-all', [\App\Http\Controllers\BuyerNotificationController::class, 'markAllAsRead'])->name('read-all');
+                });
+                
+                // السوق الثانوي - إجراءات البيع والشراء (تتطلب تسجيل دخول)
                 Route::prefix('secondary-market')->as('secondary-market.')->group(function(){
-                    Route::get('/', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'index'])->name('index');
-                    Route::get('/offer/{id}', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'show'])->name('show');
                     Route::post('sell', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'createSaleOffer'])->name('sell');
                     Route::post('buy', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'buy'])->name('buy');
                     Route::delete('cancel/{id}', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'cancelSaleOffer'])->name('cancel');

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الأيقونات</title>
+    <link rel="stylesheet" href="/assets/plugins/@mdi/font/css/materialdesignicons.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        .icon-test {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .icon-test i {
+            font-size: 2rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .badge-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .badge-info {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🧪 اختبار أيقونات Material Design Icons</h1>
+
+        <h2>1. اختبار الأيقونات المنفردة:</h2>
+        <div class="icon-test">
+            <i class="mdi mdi-cart-arrow-down" style="color: #10b981; font-size: 2rem;"></i>
+            <div>
+                <strong>أيقونة الشراء</strong><br>
+                <span class="code">mdi-cart-arrow-down</span>
+            </div>
+        </div>
+
+        <div class="icon-test">
+            <i class="mdi mdi-cash-multiple" style="color: #3b82f6; font-size: 2rem;"></i>
+            <div>
+                <strong>أيقونة البيع</strong><br>
+                <span class="code">mdi-cash-multiple</span>
+            </div>
+        </div>
+
+        <div class="icon-test">
+            <i class="mdi mdi-swap-horizontal" style="color: #0ea5e9; font-size: 2rem;"></i>
+            <div>
+                <strong>أيقونة التحويل</strong><br>
+                <span class="code">mdi-swap-horizontal</span>
+            </div>
+        </div>
+
+        <div class="icon-test">
+            <i class="mdi mdi-cash-plus" style="color: #f59e0b; font-size: 2rem;"></i>
+            <div>
+                <strong>أيقونة الأرباح</strong><br>
+                <span class="code">mdi-cash-plus</span>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 40px;">2. اختبار داخل الـ Badge (كما في Dashboard):</h2>
+
+        <div style="margin: 20px 0;">
+            <span class="badge badge-success">
+                <i class="mdi mdi-cart-arrow-down" style="font-size: 1rem;"></i>
+                <span>شراء</span>
+            </span>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <span class="badge badge-primary">
+                <i class="mdi mdi-cash-multiple" style="font-size: 1rem;"></i>
+                <span>بيع</span>
+            </span>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <span class="badge badge-info">
+                <i class="mdi mdi-swap-horizontal" style="font-size: 1rem;"></i>
+                <span>تحويل</span>
+            </span>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <span class="badge badge-warning">
+                <i class="mdi mdi-cash-plus" style="font-size: 1rem;"></i>
+                <span>أرباح</span>
+            </span>
+        </div>
+
+        <h2 style="margin-top: 40px;">3. التشخيص:</h2>
+        <div id="diagnosis" style="padding: 20px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px;">
+            <p><strong>جاري الفحص...</strong></p>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+            const diagnosis = document.getElementById('diagnosis');
+            const icons = document.querySelectorAll('i[class*="mdi-"]');
+
+            let html = '<h3>نتائج الفحص:</h3><ul>';
+
+            // Check if CSS is loaded
+            const testIcon = icons[0];
+            const computed = window.getComputedStyle(testIcon, ':before');
+            const content = computed.getPropertyValue('content');
+
+            if (content && content !== 'none' && content !== '""') {
+                html += '<li class="success">✅ ملف CSS للأيقونات محمّل بنجاح</li>';
+                html += `<li class="success">✅ المحتوى المولد: ${content}</li>`;
+            } else {
+                html += '<li class="error">❌ ملف CSS للأيقونات غير محمّل أو غير موجود!</li>';
+                html += '<li class="error">تحقق من مسار الملف في console المتصفح</li>';
+            }
+
+            html += `<li>عدد الأيقونات في الصفحة: ${icons.length}</li>`;
+            html += '</ul>';
+
+            // Check font-family
+            const fontFamily = computed.getPropertyValue('font-family');
+            html += `<p><strong>Font Family:</strong> ${fontFamily}</p>`;
+
+            diagnosis.innerHTML = html;
+        });
+    </script>
+</body>
+
+</html>

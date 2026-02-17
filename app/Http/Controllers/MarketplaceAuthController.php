@@ -23,7 +23,7 @@ class MarketplaceAuthController extends Controller
         if (Auth::guard('web')->attempt(['email' => $data['email'], 'password' => $data['password']], $request->boolean('remember'))) {
             $request->session()->regenerate();
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('marketplace.offers.index');
+            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
         }
 
         return back()->withErrors(['email' => __('بيانات الدخول غير صحيحة')])->withInput();
@@ -56,7 +56,7 @@ class MarketplaceAuthController extends Controller
                 ]
             );
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('marketplace.offers.index');
+            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
         } else {
             // New marketplace account: create User and Buyer
             $data = $request->validate([
@@ -81,7 +81,7 @@ class MarketplaceAuthController extends Controller
             ]);
             Auth::guard('web')->login($user);
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('marketplace.offers.index');
+            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
         }
     }
 
@@ -90,6 +90,6 @@ class MarketplaceAuthController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('marketplace.offers.index');
+        return redirect()->route('landing');
     }
 }

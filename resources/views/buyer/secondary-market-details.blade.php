@@ -211,13 +211,19 @@
                                     {{ $offer->description ? Str::limit($offer->description, 50) : '-' }}
                                 </td>
                                 <td>
-                                    <button type="button" class="buy-btn" data-toggle="modal"
-                                        data-target="#buyModal{{ $offer->id }}" data-offer-id="{{ $offer->id }}"
-                                        data-shares="{{ $offer->shares_count }}"
-                                        data-price="{{ $offer->price_per_share }}" data-currency="{{ $offer->currency }}"
-                                        data-seller="{{ $offer->seller->name ?? __('مستثمر') }}">
-                                        <i class="mdi mdi-cart"></i> {{ __('شراء') }}
-                                    </button>
+                                    @auth('web')
+                                        <button type="button" class="buy-btn" data-toggle="modal"
+                                            data-target="#buyModal{{ $offer->id }}" data-offer-id="{{ $offer->id }}"
+                                            data-shares="{{ $offer->shares_count }}"
+                                            data-price="{{ $offer->price_per_share }}" data-currency="{{ $offer->currency }}"
+                                            data-seller="{{ $offer->seller->name ?? __('مستثمر') }}">
+                                            <i class="mdi mdi-cart"></i> {{ __('شراء') }}
+                                        </button>
+                                    @else
+                                        <a href="{{ route('marketplace.login') }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="mdi mdi-login"></i> سجل دخول للشراء
+                                        </a>
+                                    @endauth
                                 </td>
                             </tr>
                         @endforeach
@@ -277,6 +283,34 @@
                                 </small>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" for="payment_method_{{ $offer->id }}">
+                                    <i class="mdi mdi-credit-card me-1" style="color: #06b6d4;"></i>
+                                    {{ __('طريقة الدفع') }}
+                                </label>
+                                <select class="form-select payment-method-select" id="payment_method_{{ $offer->id }}"
+                                    name="payment_method" required data-offer-id="{{ $offer->id }}">
+                                    <option value="wallet" selected>
+                                        <i class="mdi mdi-wallet"></i> {{ __('الدفع من المحفظة') }}
+                                        ({{ __('الرصيد المتاح') }}: {{ number_format($walletBalance ?? 0, 2) }}
+                                        {{ __('ريال') }})
+                                    </option>
+                                    <option value="credit_card" disabled>
+                                        <i class="mdi mdi-credit-card"></i> {{ __('بطاقة ائتمانية') }}
+                                        ({{ __('غير متاح حالياً') }})
+                                    </option>
+                                </select>
+                                <div id="wallet_status_{{ $offer->id }}" class="mt-2" style="display: none;">
+                                    <div class="alert alert-sm mb-0" role="alert">
+                                        <i class="mdi mdi-information"></i>
+                                        <span class="wallet-status-message"></span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    {{ __('اختر طريقة الدفع المناسبة لإتمام الشراء') }}
+                                </small>
+                            </div>
+
                             <div class="p-3 rounded"
                                 style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #06b6d4;">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -299,8 +333,10 @@
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">
                                 <i class="mdi mdi-close"></i> {{ __('إلغاء') }}
                             </button>
-                            <button type="submit" class="btn btn-primary"
-                                style="background: var(--secondary-primary); border-color: var(--secondary-primary);">
+                            <button type="submit" class="btn btn-primary btn-confirm-purchase"
+                                style="background: var(--secondary-primary); border-color: var(--secondary-primary);"
+                                data-offer-id="{{ $offer->id }}" data-price="{{ $offer->price_per_share }}"
+                                data-wallet-balance="{{ $walletBalance ?? 0 }}">
                                 <i class="mdi mdi-check-circle"></i> {{ __('تأكيد الشراء') }}
                             </button>
                         </div>
@@ -459,9 +495,72 @@
                 const totalAmount = sharesCount * pricePerShare;
                 const currency = '{{ $offers->first()->currency ?? '' }}';
 
-                $('#total_amount_' + offerId).text(
+                const totalAmountEl = $('#total_amount_' + offerId);
+                totalAmountEl.text(
                     totalAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' ' + currency
                 );
+
+                // Check if wallet has sufficient balance
+                const paymentMethod = $('#payment_method_' + offerId).val();
+                const confirmBtn = $('button[data-offer-id="' + offerId + '"]');
+                const walletBalance = parseFloat(confirmBtn.data('wallet-balance')) || 0;
+
+                if (paymentMethod === 'wallet') {
+                    if (totalAmount > walletBalance) {
+                        totalAmountEl.removeClass('text-danger text-success').addClass('text-danger');
+                        totalAmountEl.parent().removeClass('border-success').css('border-color', '#dc2626');
+
+                        // Add warning icon
+                        if (!totalAmountEl.find('.mdi-alert').length) {
+                            totalAmountEl.prepend('<i class="mdi mdi-alert-circle me-1"></i>');
+                        }
+                    } else {
+                        totalAmountEl.removeClass('text-danger text-success').addClass('text-success');
+                        totalAmountEl.parent().css('border-color', '#06b6d4');
+                        totalAmountEl.find('.mdi-alert-circle').remove();
+                    }
+                }
+            });
+
+            // Update check when payment method changes
+            $('select[name="payment_method"]').on('change', function() {
+                const form = $(this).closest('form');
+                form.find('.shares-input').trigger('input');
+            });
+
+            // Check wallet balance before purchase
+            $('form').on('submit', function(e) {
+                const form = $(this);
+                const confirmBtn = form.find('.btn-confirm-purchase');
+
+                if (confirmBtn.length === 0) {
+                    return true; // Not a purchase form
+                }
+
+                const paymentMethod = form.find('select[name="payment_method"]').val();
+
+                if (paymentMethod === 'wallet') {
+                    const offerId = confirmBtn.data('offer-id');
+                    const walletBalance = parseFloat(confirmBtn.data('wallet-balance')) || 0;
+                    const sharesCount = parseInt(form.find('input[name="shares_count"]').val()) || 0;
+                    const pricePerShare = parseFloat(confirmBtn.data('price')) || 0;
+                    const totalAmount = sharesCount * pricePerShare;
+
+                    if (totalAmount > walletBalance) {
+                        e.preventDefault();
+
+                        const currency = '{{ $offers->first()->currency ?? 'ريال' }}';
+                        const shortage = totalAmount - walletBalance;
+
+                        alert('⚠️ رصيد المحفظة غير كافٍ\n\n' +
+                            'المبلغ المطلوب: ' + totalAmount.toFixed(2) + ' ' + currency + '\n' +
+                            'الرصيد المتاح: ' + walletBalance.toFixed(2) + ' ' + currency + '\n' +
+                            'العجز: ' + shortage.toFixed(2) + ' ' + currency + '\n\n' +
+                            'يرجى إيداع المبلغ المطلوب في محفظتك أولاً أو تقليل عدد الأسهم.');
+
+                        return false;
+                    }
+                }
             });
         });
 

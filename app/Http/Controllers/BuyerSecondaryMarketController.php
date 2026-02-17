@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Central\Buyer;
 use App\Models\Central\BuyerHolding;
+use App\Models\Central\BuyerNotification;
 use App\Models\Central\BuyerSaleOffer;
 use App\Models\Central\ShareOperation;
 use Illuminate\Http\Request;
@@ -99,13 +100,26 @@ class BuyerSecondaryMarketController extends Controller
      */
     public function index(Request $request)
     {
+        $user = Auth::guard('web')->user();
+        $buyer = null;
+        
+        if ($user) {
+            $buyer = Buyer::on('central')->where('user_id', $user->id)->first();
+        }
+
         $query = BuyerSaleOffer::on('central')
             ->where('status', 'active')
+            ->where('shares_count', '>', 0)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                   ->orWhere('expires_at', '>', now());
             })
             ->with(['seller', 'originalOffer']);
+
+        // Hide user's own offers - cannot buy from yourself
+        if ($buyer) {
+            $query->where('seller_buyer_id', '!=', $buyer->id);
+        }
 
         // Filters
         if ($request->filled('min_price')) {
@@ -179,10 +193,25 @@ class BuyerSecondaryMarketController extends Controller
      */
     public function show($offerId)
     {
+        $user = Auth::guard('web')->user();
+        $buyer = null;
+        
+        if ($user) {
+            $buyer = Buyer::on('central')->where('user_id', $user->id)->first();
+        }
+        
+        // Get wallet balance
+        $walletBalance = 0;
+        if ($buyer) {
+            $wallet = $buyer->getOrCreateWallet();
+            $walletBalance = $wallet->balance ?? 0;
+        }
+        
         // Get all active offers for this property
         $offers = BuyerSaleOffer::on('central')
             ->where('original_offer_id', $offerId)
             ->where('status', 'active')
+            ->where('shares_count', '>', 0)
             ->with(['seller', 'originalOffer'])
             ->orderBy('price_per_share', 'asc')
             ->get();
@@ -226,7 +255,7 @@ class BuyerSecondaryMarketController extends Controller
             $stats['price_change_percent'] = 0;
         }
 
-        return view('buyer.secondary-market-details', compact('offers', 'offer', 'priceHistory', 'stats'));
+        return view('buyer.secondary-market-details', compact('offers', 'offer', 'priceHistory', 'stats', 'walletBalance'));
     }
 
     /**
@@ -237,6 +266,7 @@ class BuyerSecondaryMarketController extends Controller
         $data = $request->validate([
             'sale_offer_id' => 'required|integer|exists:central.buyer_sale_offers,id',
             'shares_count' => 'required|integer|min:1',
+            'payment_method' => 'required|in:wallet,credit_card',
         ]);
 
         DB::beginTransaction();
@@ -248,6 +278,12 @@ class BuyerSecondaryMarketController extends Controller
             if (!$buyer) {
                 DB::rollBack();
                 return redirect()->back()->withErrors(['error' => 'يجب إنشاء حساب مشتري أولاً']);
+            }
+
+            // التحقق من طريقة الدفع
+            if ($data['payment_method'] === 'credit_card') {
+                DB::rollBack();
+                return redirect()->back()->withErrors(['error' => 'الدفع بالبطاقة الائتمانية غير متاح حالياً. يرجى الدفع من المحفظة.']);
             }
 
             $saleOffer = BuyerSaleOffer::on('central')
@@ -284,6 +320,40 @@ class BuyerSecondaryMarketController extends Controller
             $pricePerShare = $saleOffer->price_per_share;
             $totalAmount = $sharesCount * $pricePerShare;
 
+            // معالجة الدفع من محفظة المشتري
+            $buyerWallet = $buyer->getOrCreateWallet();
+            if (!$buyerWallet->hasSufficientBalance($totalAmount)) {
+                DB::rollBack();
+                return redirect()->back()->withErrors([
+                    'error' => sprintf(
+                        'رصيد المحفظة غير كافٍ. المطلوب: %s %s، المتاح: %s %s',
+                        number_format($totalAmount, 2),
+                        $saleOffer->currency,
+                        number_format($buyerWallet->available_balance, 2),
+                        $buyerWallet->currency
+                    )
+                ]);
+            }
+
+            // خصم المبلغ من محفظة المشتري
+            $buyerTransaction = $buyerWallet->processPurchase(
+                $totalAmount,
+                $saleOffer->id,
+                "شراء {$sharesCount} سهم من السوق الثانوي - {$saleOffer->originalOffer->title}"
+            );
+
+            // إضافة المبلغ لمحفظة البائع
+            $sellerWallet = $saleOffer->seller->getOrCreateWallet();
+            $sellerTransaction = $sellerWallet->processSale(
+                $totalAmount,
+                $saleOffer->id,
+                "بيع {$sharesCount} سهم في السوق الثانوي - {$saleOffer->originalOffer->title}"
+            );
+
+            // ربط المعاملات ببعضها
+            $buyerTransaction->update(['related_buyer_id' => $saleOffer->seller_buyer_id]);
+            $sellerTransaction->update(['related_buyer_id' => $buyer->id]);
+
             // تحديث ممتلكات البائع
             $sellerHolding = $saleOffer->holding;
             $sellerHolding->shares_owned -= $sharesCount;
@@ -312,7 +382,7 @@ class BuyerSecondaryMarketController extends Controller
             $buyerHolding->save();
 
             // تسجيل عملية البيع للبائع
-            ShareOperation::on('central')->create([
+            $sellerOperation = ShareOperation::on('central')->create([
                 'offer_id' => $saleOffer->original_offer_id,
                 'tenant_id' => $saleOffer->originalOffer->tenant_id,
                 'buyer_id' => $saleOffer->seller_buyer_id,
@@ -330,7 +400,7 @@ class BuyerSecondaryMarketController extends Controller
             ]);
 
             // تسجيل عملية الشراء للمشتري
-            ShareOperation::on('central')->create([
+            $buyerOperation = ShareOperation::on('central')->create([
                 'offer_id' => $saleOffer->original_offer_id,
                 'tenant_id' => $saleOffer->originalOffer->tenant_id,
                 'buyer_id' => $buyer->id,
@@ -347,18 +417,59 @@ class BuyerSecondaryMarketController extends Controller
                 ],
             ]);
 
+            // ربط المعاملات المالية بالعمليات
+            $buyerTransaction->update(['share_operation_id' => $buyerOperation->id]);
+            $sellerTransaction->update(['share_operation_id' => $sellerOperation->id]);
+
             // تحديث حالة عرض البيع
             $saleOffer->shares_count -= $sharesCount;
             
+            $isFullySold = false;
             // إذا تم شراء كل الأسهم، تحديث الحالة إلى sold
             if ($saleOffer->shares_count <= 0) {
                 $saleOffer->status = 'sold';
                 $saleOffer->buyer_buyer_id = $buyer->id;
                 $saleOffer->sold_price_per_share = $pricePerShare;
                 $saleOffer->sold_at = now();
+                $isFullySold = true;
             }
             // إذا بقيت أسهم، العرض يبقى active
             $saleOffer->save();
+
+            // إنشاء تنبيه للبائع
+            $notificationType = $isFullySold ? 'sale_completed' : 'partial_sale';
+            $notificationTitle = $isFullySold 
+                ? '✅ تم بيع جميع أسهمك!' 
+                : '🔔 تم بيع جزء من أسهمك!';
+            $notificationMessage = $isFullySold
+                ? sprintf('تم بيع جميع الأسهم (%d سهم) من عرضك بسعر %s ريال للسهم. إجمالي المبلغ: %s ريال', 
+                    $sharesCount, 
+                    number_format($pricePerShare, 2), 
+                    number_format($totalAmount, 2))
+                : sprintf('تم بيع %d سهم من أصل %d من عرضك بسعر %s ريال للسهم. المبلغ: %s ريال. تبقى %d سهم', 
+                    $sharesCount, 
+                    ($sharesCount + $saleOffer->shares_count),
+                    number_format($pricePerShare, 2), 
+                    number_format($totalAmount, 2),
+                    $saleOffer->shares_count);
+
+            BuyerNotification::on('central')->create([
+                'buyer_id' => $saleOffer->seller_buyer_id,
+                'type' => $notificationType,
+                'title' => $notificationTitle,
+                'message' => $notificationMessage,
+                'sale_offer_id' => $saleOffer->id,
+                'share_operation_id' => $sellerOperation->id,
+                'wallet_transaction_id' => $sellerTransaction->id,
+                'metadata' => [
+                    'shares_sold' => $sharesCount,
+                    'price_per_share' => $pricePerShare,
+                    'total_amount' => $totalAmount,
+                    'buyer_buyer_id' => $buyer->id,
+                    'buyer_name' => $buyer->name,
+                    'property_title' => $saleOffer->originalOffer->title,
+                ],
+            ]);
 
             DB::commit();
 

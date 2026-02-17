@@ -290,11 +290,15 @@
                 <button class="di-nav-toggle" type="button" aria-label="Toggle navigation"><span
                         class="mdi mdi-menu"></span></button>
                 <div class="di-nav-links" id="diNavLinks">
+                    @php($loggedIn = Illuminate\Support\Facades\Auth::guard('web')->check())
                     <a href="{{ route('marketplace.offers.index') }}">{{ __('العروض') }}</a>
-                    <a href="{{ route('landing') }}#plans">{{ __('Choose Your Plan') }}</a>
-                    <a href="{{ route('static.about') }}">{{ __('app.about_title') }}</a>
-                    <a href="{{ route('static.faq') }}">{{ __('app.faq_title') }}</a>
-                    <a href="{{ route('landing') }}#contact">{{ __('app.contact') }}</a>
+                    <a href="{{ route('buyer.secondary-market.index') }}">{{ __('السوق الثانوي') }}</a>
+                    @if (!$loggedIn)
+                        <a href="{{ route('landing') }}#plans">{{ __('Choose Your Plan') }}</a>
+                        <a href="{{ route('static.about') }}">{{ __('app.about_title') }}</a>
+                        <a href="{{ route('static.faq') }}">{{ __('app.faq_title') }}</a>
+                        <a href="{{ route('landing') }}#contact">{{ __('app.contact') }}</a>
+                    @endif
                     <span class="mx-2">|</span>
                     @php($currentLocale = app()->getLocale())
                     @php($locales = Mcamara\LaravelLocalization\Facades\LaravelLocalization::getSupportedLocales())
@@ -307,15 +311,50 @@
                         @endif
                     @endforeach
                     <span class="mx-2">|</span>
-                    @php($loggedIn = Illuminate\Support\Facades\Auth::guard('web')->check())
                     @if ($loggedIn)
                         @php($user = Illuminate\Support\Facades\Auth::guard('web')->user())
                         @php($buyer = \App\Models\Central\Buyer::on('central')->where('user_id', $user->id)->first())
                         <span style="color: white; margin-inline-end: 10px; font-weight: 500;">
                             <i class="mdi mdi-account-circle"></i> {{ $buyer ? $buyer->name : $user->name }}
                         </span>
+
+                        <!-- Notifications Bell -->
+                        @if ($buyer)
+                            <div class="dropdown" style="display: inline-block; margin-inline-start: 8px;">
+                                <button class="btn btn-sm btn-outline-light position-relative" type="button"
+                                    id="notificationBell" data-toggle="dropdown" aria-haspopup="true"
+                                    aria-expanded="false">
+                                    <i class="mdi mdi-bell"></i>
+                                    <span
+                                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                        id="notificationCount" style="display: none; font-size: 0.7rem;">
+                                        0
+                                    </span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationBell"
+                                    id="notificationDropdown"
+                                    style="width: 350px; max-height: 400px; overflow-y: auto; direction: rtl;">
+                                    <h6 class="dropdown-header"><i class="mdi mdi-bell"></i> التنبيهات</h6>
+                                    <div id="notificationList">
+                                        <div class="dropdown-item text-center text-muted">
+                                            <small>لا توجد تنبيهات جديدة</small>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item text-center text-primary"
+                                        href="{{ route('buyer.notifications.index') }}">
+                                        <small><i class="mdi mdi-eye"></i> عرض جميع التنبيهات</small>
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+
                         <a href="{{ route('buyer.dashboard') }}" class="btn btn-sm btn-light">
-                            <i class="mdi mdi-wallet"></i> {{ __('محفظتي') }}
+                            <i class="mdi mdi-view-dashboard"></i> {{ __('لوحة التحكم') }}
+                        </a>
+                        <a href="{{ route('buyer.wallet.index') }}" class="btn btn-sm btn-success"
+                            style="margin-inline-start:8px;">
+                            <i class="mdi mdi-wallet"></i> {{ __('المحفظة') }}
                         </a>
                         <a href="{{ route('buyer.secondary-market.index') }}" class="btn btn-sm"
                             style="margin-inline-start:8px; background: #06b6d4; border-color: #06b6d4; color: white;">
@@ -428,8 +467,184 @@
                     e.stopPropagation();
                 });
             }
+
+            // Fetch notification count and list
+            @if ($loggedIn && $buyer)
+                fetchNotifications();
+                // Update notifications every 30 seconds
+                setInterval(fetchNotifications, 30000);
+            @endif
         });
+
+        @if ($loggedIn && isset($buyer))
+            function fetchNotifications() {
+                fetch('{{ route('buyer.notifications.latest') }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('notificationCount');
+                        const bell = document.getElementById('notificationBell');
+                        const notificationList = document.getElementById('notificationList');
+
+                        // Filter only unread notifications
+                        const unreadNotifications = data.notifications.filter(n => !n.is_read);
+                        const count = unreadNotifications.length;
+
+                        // Update badge
+                        if (badge && count > 0) {
+                            badge.textContent = count > 99 ? '99+' : count;
+                            badge.style.display = 'inline-block';
+
+                            // Add animation class
+                            bell.classList.add('notification-pulse');
+                        } else if (badge) {
+                            badge.style.display = 'none';
+                            bell.classList.remove('notification-pulse');
+                        }
+
+                        // Update dropdown list
+                        if (notificationList) {
+                            if (count === 0) {
+                                notificationList.innerHTML = `
+                                    <div class="dropdown-item text-center text-muted">
+                                        <small>لا توجد تنبيهات جديدة</small>
+                                    </div>
+                                `;
+                            } else {
+                                notificationList.innerHTML = unreadNotifications.map(notification => {
+                                    const icon = getNotificationIcon(notification.type);
+                                    const color = getNotificationColor(notification.type);
+                                    const time = formatTime(notification.created_at);
+
+                                    return `
+                                        <a class="dropdown-item notification-item" href="{{ route('buyer.notifications.index') }}#notification-${notification.id}" 
+                                           onclick="markAsReadAndGo(event, ${notification.id})"
+                                           style="white-space: normal; padding: 12px 20px; border-bottom: 1px solid #eee;">
+                                            <div class="d-flex align-items-start">
+                                                <i class="${icon}" style="font-size: 1.5rem; color: ${color}; margin-left: 10px;"></i>
+                                                <div style="flex: 1;">
+                                                    <strong style="font-size: 0.9rem; display: block; margin-bottom: 4px;">${notification.title}</strong>
+                                                    <p style="font-size: 0.85rem; color: #666; margin: 0; line-height: 1.4;">${notification.message}</p>
+                                                    <small style="color: #999; margin-top: 4px; display: block;"><i class="mdi mdi-clock-outline"></i> ${time}</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    `;
+                                }).join('');
+                            }
+                        }
+                    })
+                    .catch(error => console.error('خطأ في جلب التنبيهات:', error));
+            }
+
+            function getNotificationIcon(type) {
+                const icons = {
+                    'sale_completed': 'mdi mdi-check-circle',
+                    'purchase_completed': 'mdi mdi-shopping',
+                    'sale_offer_interest': 'mdi mdi-eye',
+                    'wallet_deposit': 'mdi mdi-cash-plus',
+                    'wallet_withdrawal': 'mdi mdi-cash-minus'
+                };
+                return icons[type] || 'mdi mdi-information';
+            }
+
+            function getNotificationColor(type) {
+                const colors = {
+                    'sale_completed': '#10b981',
+                    'purchase_completed': '#3b82f6',
+                    'sale_offer_interest': '#f59e0b',
+                    'wallet_deposit': '#10b981',
+                    'wallet_withdrawal': '#ef4444'
+                };
+                return colors[type] || '#6b7280';
+            }
+
+            function formatTime(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'الآن';
+                if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+                if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+                if (diffDays < 7) return `منذ ${diffDays} يوم`;
+
+                return date.toLocaleDateString('ar-SA', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+
+            function markAsReadAndGo(event, notificationId) {
+                event.preventDefault();
+
+                // Mark as read
+                fetch(`{{ route('buyer.notifications.read', ':id') }}`.replace(':id', notificationId), {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(() => {
+                        // Navigate to notifications page with hash
+                        window.location.href =
+                            `{{ route('buyer.notifications.index') }}#notification-${notificationId}`;
+                    })
+                    .catch(error => console.error('خطأ في تحديث حالة التنبيه:', error));
+            }
+        @endif
     </script>
+
+    <style>
+        @keyframes bellPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .notification-pulse {
+            animation: bellPulse 2s infinite;
+        }
+
+        /* Notification dropdown styles */
+        #notificationDropdown {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: none;
+            border-radius: 8px;
+        }
+
+        #notificationDropdown .dropdown-header {
+            background: linear-gradient(135deg, var(--primary), #1a5f3f);
+            color: white;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .notification-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa !important;
+            transform: translateX(-3px);
+        }
+
+        .notification-item:active {
+            background-color: #e9ecef !important;
+        }
+    </style>
 </body>
 
 </html>
