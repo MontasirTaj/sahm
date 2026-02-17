@@ -5,12 +5,52 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Central\ShareOperation;
 use App\Models\Central\ShareOffer;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class PurchaseController extends Controller
 {
+    /**
+     * التأكد من وجود المستخدم في قاعدة البيانات المركزية
+     * يستخدم للسماح لمستخدمي Tenant بالشراء
+     */
+    private function ensureUserInCentralDatabase($currentUser)
+    {
+        // التحقق من قدرات Token
+        $token = $currentUser->currentAccessToken();
+        $abilities = $token ? $token->abilities : [];
+        
+        // إذا كان Token من نوع admin (tenant user)
+        if (in_array('admin', $abilities)) {
+            // البحث عن المستخدم في القاعدة المركزية بالبريد
+            $centralUser = User::where('email', $currentUser->email)->first();
+            
+            if (!$centralUser) {
+                // إنشاء المستخدم في القاعدة المركزية
+                $centralUser = User::create([
+                    'name' => $currentUser->name,
+                    'email' => $currentUser->email,
+                    'password' => Hash::make(uniqid()), // كلمة مرور عشوائية (لن يستخدمها للدخول)
+                    'email_verified_at' => now(),
+                ]);
+            } else {
+                // تحديث الاسم إذا تغير
+                if ($centralUser->name !== $currentUser->name) {
+                    $centralUser->name = $currentUser->name;
+                    $centralUser->save();
+                }
+            }
+            
+            return $centralUser;
+        }
+        
+        // إذا كان buyer عادي، نرجع المستخدم كما هو
+        return $currentUser;
+    }
+
     /**
      * شراء أسهم من عرض محدد
      */
@@ -33,7 +73,12 @@ class PurchaseController extends Controller
         DB::beginTransaction();
 
         try {
-            $user = $request->user();
+            $currentUser = $request->user();
+            
+            // التأكد من وجود المستخدم في القاعدة المركزية
+            // هذا يسمح لمستخدمي Tenant بالشراء أيضاً
+            $user = $this->ensureUserInCentralDatabase($currentUser);
+            
             $offerId = $request->offer_id;
             $sharesCount = $request->shares_count;
 
@@ -149,7 +194,11 @@ class PurchaseController extends Controller
         DB::beginTransaction();
 
         try {
-            $user = $request->user();
+            $currentUser = $request->user();
+            
+            // التأكد من وجود المستخدم في القاعدة المركزية
+            $user = $this->ensureUserInCentralDatabase($currentUser);
+            
             $operationId = $request->operation_id;
 
             // العثور على العملية
@@ -230,7 +279,10 @@ class PurchaseController extends Controller
         DB::beginTransaction();
 
         try {
-            $user = $request->user();
+            $currentUser = $request->user();
+            
+            // التأكد من وجود المستخدم في القاعدة المركزية
+            $user = $this->ensureUserInCentralDatabase($currentUser);
 
             // العثور على العملية
             $operation = ShareOperation::find($operationId);

@@ -1,9 +1,9 @@
-﻿# سهمي - توثيق API لتطبيق الموبايل
+# Sahm - API Documentation for Mobile Application
 
-## نظرة عامة
+## Overview
 
-هذا API مصمم خصيصاً لتطبيق الموبايل الخاص بمنصة سهمي للاستثمار العقاري.
-جميع الـ endpoints منفصلة تماماً عن الموقع الإلكتروني ولن تؤثر عليه.
+This API is specifically designed for the Sahm real estate investment platform mobile application.
+All endpoints are completely separate from the website and will not affect it.
 
 **Base URL:** `https://your-domain.com/api/`
 
@@ -11,11 +11,31 @@
 
 ---
 
-## المصادقة (Authentication)
+## User Types
 
-يستخدم API نظام Laravel Sanctum للمصادقة عبر API Tokens.
+The system supports **TWO types of users**:
 
-### Headers المطلوبة
+### 🛒 Buyers (المشترون)
+- Global users stored in **central database**
+- Can purchase from any offer
+- **Don't require** `tenant_domain` for authentication
+- Endpoints: `/auth/register`, `/auth/login`
+
+### 👨‍💼 Tenant Admins (مديرو Tenant)
+- Users stored in **tenant-specific database**
+- Can manage offers for their tenant
+- **Require** `tenant_domain` for authentication
+- Endpoints: `/auth/tenant-register`, `/auth/tenant-login`
+
+**📚 For detailed authentication guide, see:** [API_AUTH_GUIDE.md](API_AUTH_GUIDE.md)
+
+---
+
+## Authentication
+
+The API uses Laravel Sanctum system for authentication via API Tokens.
+
+### Required Headers
 
 ```
 Content-Type: application/json
@@ -26,7 +46,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 1. تسجيل مستخدم جديد
+## 1. Register New User
 
 **Endpoint:** `POST /api/v1/auth/register`
 
@@ -63,7 +83,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 2. تسجيل الدخول
+## 2. Login
 
 **Endpoint:** `POST /api/v1/auth/login`
 
@@ -99,7 +119,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 3. تسجيل الخروج
+## 3. Logout
 
 **Endpoint:** `POST /api/v1/auth/logout`
 
@@ -117,7 +137,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 4. الحصول على بيانات المستخدم
+## 4. Get User Data
 
 **Endpoint:** `GET /api/v1/auth/profile`
 
@@ -142,7 +162,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 5. تحديث بيانات المستخدم
+## 5. Update User Data
 
 **Endpoint:** `PUT /api/v1/auth/profile`
 
@@ -177,7 +197,7 @@ Authorization: Bearer {token}  (للـ endpoints المحمية)
 
 ---
 
-## 6. عرض قائمة العروض
+## 6. View Offers List
 
 **Endpoint:** `GET /api/v1/offers`
 
@@ -237,7 +257,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 7. تفاصيل عرض محدد
+## 7. Specific Offer Details
 
 **Endpoint:** `GET /api/v1/offers/{id}`
 
@@ -278,7 +298,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 8. الحصول على المدن المتاحة
+## 8. Get Available Cities
 
 **Endpoint:** `GET /api/v1/offers/meta/cities`
 
@@ -296,7 +316,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 9. إحصائيات العروض
+## 9. Offers Statistics
 
 **Endpoint:** `GET /api/v1/offers/meta/statistics`
 
@@ -325,7 +345,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 10. شراء أسهم
+## 10. Purchase Shares
 
 **Endpoint:** `POST /api/v1/purchase`
 
@@ -368,7 +388,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 11. تأكيد الدفع
+## 11. Confirm Payment
 
 **Endpoint:** `POST /api/v1/purchase/confirm-payment`
 
@@ -400,7 +420,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 12. إلغاء عملية شراء
+## 12. Cancel Purchase Operation
 
 **Endpoint:** `POST /api/v1/purchase/{operationId}/cancel`
 
@@ -422,7 +442,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 13. لوحة تحكم المشتري
+## 13. Buyer Dashboard
 
 **Endpoint:** `GET /api/v1/buyer/dashboard`
 
@@ -475,7 +495,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 14. عمليات المشتري
+## 14. Buyer Operations
 
 **Endpoint:** `GET /api/v1/buyer/operations`
 
@@ -531,7 +551,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 15. تفاصيل عملية محددة
+## 15. Specific Operation Details
 
 **Endpoint:** `GET /api/v1/buyer/operations/{operationId}`
 
@@ -576,7 +596,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## 16. الأسهم المملوكة
+## 16. Owned Shares
 
 **Endpoint:** `GET /api/v1/buyer/my-shares`
 
@@ -631,7 +651,7 @@ GET /api/v1/offers?tenant_domain=tenant.com&city=الرياض&availability=avail
 
 ---
 
-## أكواد الحالة (Status Codes)
+## Status Codes
 
 - `200` - نجح الطلب
 - `201` - تم الإنشاء بنجاح

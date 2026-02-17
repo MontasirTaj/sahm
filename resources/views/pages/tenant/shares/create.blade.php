@@ -29,7 +29,7 @@
 
     <div class="card">
         <form method="POST" action="{{ route('tenant.subdomain.shares.store', ['subdomain' => $subdomain]) }}"
-            enctype="multipart/form-data">
+            enctype="multipart/form-data" id="offer-create-form">
             @csrf
             <div class="row">
                 <div class="col-md-6">
@@ -48,8 +48,8 @@
                     {{-- تم حذف العنوان التفصيلي حسب الطلب --}}
                     <div class="form-group">
                         <label class="d-flex align-items-center justify-content-between">
-                            <span>{{ __('صور العرض') }}</span>
-                            <small class="text-muted">{{ __('حد أقصى 15 صورة') }}</small>
+                            <span>{{ __('صور العرض') }} <span class="text-danger">*</span></span>
+                            <small class="text-muted">{{ __('حد أقصى 15 صورة، يجب إضافة صورة واحدة على الأقل') }}</small>
                         </label>
                         <div id="offer-images-container"></div>
                         <div class="mt-2">
@@ -102,6 +102,7 @@
             var removeBtn = document.getElementById('btn-remove-image');
             var countEl = document.getElementById('offer-images-count');
             var maxImages = 15;
+            var form = document.getElementById('offer-create-form');
 
             function updateCount() {
                 var current = container.querySelectorAll('input[type=file]').length;
@@ -135,6 +136,61 @@
                 updateCount();
             }
 
+            // التحقق من وجود صور قبل إرسال النموذج
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    var imageInputs = container.querySelectorAll('input[type=file]');
+                    var hasAtLeastOneImage = false;
+
+                    // التحقق من وجود صورة واحدة على الأقل
+                    imageInputs.forEach(function(input) {
+                        if (input.files && input.files.length > 0) {
+                            hasAtLeastOneImage = true;
+                        }
+                    });
+
+                    if (!hasAtLeastOneImage) {
+                        e.preventDefault(); // منع إرسال النموذج
+
+                        // عرض رسالة خطأ
+                        var existingAlert = document.querySelector('.alert-danger.image-validation');
+                        if (!existingAlert) {
+                            var alert = document.createElement('div');
+                            alert.className =
+                                'alert alert-danger alert-dismissible fade show image-validation';
+                            alert.style.position = 'fixed';
+                            alert.style.top = '20px';
+                            alert.style.right = '20px';
+                            alert.style.zIndex = '9999';
+                            alert.style.minWidth = '350px';
+                            alert.innerHTML = `
+                                <strong>خطأ!</strong> يجب إضافة صورة واحدة على الأقل للعرض
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            `;
+                            document.body.appendChild(alert);
+
+                            // التمرير إلى قسم الصور
+                            container.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+
+                            // إزالة التنبيه بعد 5 ثواني
+                            setTimeout(function() {
+                                alert.classList.remove('show');
+                                setTimeout(function() {
+                                    alert.remove();
+                                }, 150);
+                            }, 5000);
+                        }
+
+                        return false;
+                    }
+                });
+            }
+
             addBtn && addBtn.addEventListener('click', addImageInput);
             removeBtn && removeBtn.addEventListener('click', function() {
                 var groups = container.querySelectorAll('div.d-flex');
@@ -146,6 +202,9 @@
             });
 
             updateCount();
+
+            // إضافة حقل صورة واحد تلقائياً عند تحميل الصفحة
+            addImageInput();
         });
     </script>
     <style>

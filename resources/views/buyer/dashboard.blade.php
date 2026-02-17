@@ -203,6 +203,38 @@
             border: 4px solid var(--primary) !important;
             box-shadow: 0 4px 12px rgba(26, 95, 63, 0.2) !important;
         }
+
+        /* Success Toast Styling */
+        #successToast {
+            min-width: 300px !important;
+            font-size: 1rem !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35) !important;
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        #successToast .toast-body {
+            padding: 1rem 1.25rem !important;
+            font-weight: 500 !important;
+            display: flex;
+            align-items: center;
+        }
+
+        #successToast .mdi {
+            font-size: 1.5rem !important;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 @endpush
 
@@ -212,16 +244,38 @@
             <div class="card section-card">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
-                        <h3 class="mb-1">{{ __('لوحة المشتري') }}</h3>
-                        <p class="text-muted mb-0">{{ __('عرض مقتنياتك ومتابعة العمليات الأخيرة') }}</p>
+                        <h3 class="mb-1">{{ __('محفظتي الاستثمارية') }}</h3>
+                        <p class="text-muted mb-0">{{ __('إدارة أسهمك ومتابعة عمليات الشراء والبيع') }}</p>
                     </div>
-                    <div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('buyer.secondary-market.index') }}" class="btn btn-warning">
+                            <i class="mdi mdi-storefront"></i> {{ __('السوق الثانوي') }}
+                        </a>
                         <a href="{{ route('marketplace.offers.index') }}"
                             class="btn btn-outline-primary">{{ __('استكشف العروض') }}</a>
                     </div>
                 </div>
             </div>
         </div>
+
+        {{-- Success/Error Messages --}}
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="mdi mdi-check-circle me-2"></i>
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="mdi mdi-alert-circle me-2"></i>
+                @foreach ($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                @endforeach
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
         {{-- Statistics Cards --}}
         <div class="row mb-4">
@@ -322,10 +376,11 @@
             <div class="col-12 mb-3">
                 <div class="card chart-card">
                     <div class="card-body">
-                        <h5 class="chart-title">{{ __('مقتنيات الأسهم') }}</h5>
+                        <h5 class="chart-title">{{ __('أسهمي المملوكة') }}</h5>
                         @if ($holdings->isEmpty())
                             <div class="alert alert-info mb-0">
-                                <i class="mdi mdi-information-outline me-2"></i>{{ __('لا توجد مقتنيات حالياً') }}
+                                <i class="mdi mdi-information-outline me-2"></i>{{ __('لا توجد أسهم حالياً. ') }}
+                                <a href="{{ route('marketplace.offers.index') }}">{{ __('استكشف العروض المتاحة') }}</a>
                             </div>
                         @else
                             <div class="table-responsive">
@@ -335,7 +390,9 @@
                                             <th>{{ __('العرض') }}</th>
                                             <th>{{ __('الأسهم المملوكة') }}</th>
                                             <th>{{ __('سعر الشراء') }}</th>
+                                            <th>{{ __('القيمة الحالية') }}</th>
                                             <th>{{ __('آخر عملية') }}</th>
+                                            <th class="text-center">{{ __('إجراءات') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -345,6 +402,10 @@
                                                 <td><span class="badge badge-primary">{{ $h->shares_owned }}</span></td>
                                                 <td>{{ number_format($h->avg_price_per_share ?? $h->price_per_share, 2) }}
                                                     {{ $h->currency }}</td>
+                                                <td>
+                                                    <strong>{{ number_format(($h->avg_price_per_share ?? $h->price_per_share) * $h->shares_owned, 2) }}</strong>
+                                                    {{ $h->currency }}
+                                                </td>
                                                 <td class="date-time-cell">
                                                     @if ($h->last_transaction_at)
                                                         <div class="date-line">
@@ -357,6 +418,16 @@
                                                         -
                                                     @endif
                                                 </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-success sell-btn"
+                                                        data-holding-id="{{ $h->id }}"
+                                                        data-title="{{ $h->title }}"
+                                                        data-shares-owned="{{ $h->shares_owned }}"
+                                                        data-price="{{ $h->price_per_share }}"
+                                                        data-currency="{{ $h->currency }}">
+                                                        <i class="mdi mdi-cash-multiple"></i> {{ __('عرض للبيع') }}
+                                                    </button>
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -367,6 +438,114 @@
                 </div>
             </div>
         </div>
+
+        {{-- My Sale Offers --}}
+        @if (isset($saleOffers) && $saleOffers->count() > 0)
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card chart-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="chart-title mb-0">
+                                    <i class="mdi mdi-tag-multiple text-warning"></i>
+                                    {{ __('عروضي المعروضة للبيع') }}
+                                </h5>
+                                <a href="{{ route('buyer.secondary-market.index') }}"
+                                    class="btn btn-sm btn-outline-primary">
+                                    <i class="mdi mdi-storefront"></i> {{ __('تصفح السوق الثانوي') }}
+                                </a>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ __('العرض') }}</th>
+                                            <th class="text-center">{{ __('عدد الأسهم') }}</th>
+                                            <th class="text-center">{{ __('سعر السهم') }}</th>
+                                            <th class="text-center">{{ __('القيمة الإجمالية') }}</th>
+                                            <th class="text-center">{{ __('الحالة') }}</th>
+                                            <th class="text-center">{{ __('تاريخ العرض') }}</th>
+                                            <th class="text-center">{{ __('ينتهي') }}</th>
+                                            <th class="text-center">{{ __('الإجراءات') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($saleOffers as $offer)
+                                            <tr>
+                                                <td>
+                                                    <div>
+                                                        <strong>{{ $offer->offer_title }}</strong>
+                                                        @if ($offer->description)
+                                                            <br><small
+                                                                class="text-muted">{{ Str::limit($offer->description, 50) }}</small>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge badge-primary">{{ $offer->shares_count }}</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    {{ number_format($offer->price_per_share, 2) }} {{ $offer->currency }}
+                                                </td>
+                                                <td class="text-center">
+                                                    <strong>{{ number_format($offer->shares_count * $offer->price_per_share, 2) }}</strong>
+                                                    {{ $offer->currency }}
+                                                </td>
+                                                <td class="text-center">
+                                                    @if ($offer->status === 'active')
+                                                        <span class="badge bg-success">{{ __('نشط') }}</span>
+                                                    @elseif($offer->status === 'sold')
+                                                        <span class="badge bg-info">{{ __('مباع') }}</span>
+                                                    @elseif($offer->status === 'cancelled')
+                                                        <span class="badge bg-secondary">{{ __('ملغي') }}</span>
+                                                    @else
+                                                        <span class="badge bg-warning">{{ __('منتهي') }}</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center date-time-cell">
+                                                    <div class="date-line">
+                                                        {{ \Carbon\Carbon::parse($offer->created_at)->format('Y-m-d') }}
+                                                    </div>
+                                                    <div class="time-line">
+                                                        {{ \Carbon\Carbon::parse($offer->created_at)->format('H:i') }}
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    @if ($offer->expires_at)
+                                                        <div class="date-line">
+                                                            {{ \Carbon\Carbon::parse($offer->expires_at)->format('Y-m-d') }}
+                                                        </div>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @if ($offer->status === 'active')
+                                                        <form
+                                                            action="{{ route('buyer.secondary-market.cancel', $offer->id) }}"
+                                                            method="POST" class="d-inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                                onclick="return confirm('{{ __('هل تريد إلغاء هذا العرض؟') }}')">
+                                                                <i class="mdi mdi-close"></i> {{ __('إلغاء') }}
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Operations Table --}}
         <div class="row">
@@ -430,6 +609,126 @@
                         @endif
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Success Toast --}}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="mdi mdi-check-circle me-2"></i>
+                    <span id="toastMessage"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Sell Modal --}}
+    <div class="modal fade" id="sellModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 800px;">
+            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
+                    <h5 class="modal-title">
+                        <i class="mdi mdi-cash-multiple me-2"></i>{{ __('عرض أسهم للبيع') }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form id="sellForm" action="{{ route('buyer.secondary-market.sell') }}" method="POST">
+                    @csrf
+                    <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
+                        <input type="hidden" id="holding_id" name="holding_id">
+
+                        <div class="row g-3">
+                            {{-- Column 1 --}}
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">{{ __('العرض') }}:</label>
+                                    <div id="offer_title" class="p-2 bg-light rounded text-muted"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">{{ __('الأسهم المملوكة') }}:</label>
+                                    <div id="owned_shares" class="p-2 bg-light rounded text-muted"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="shares_count">
+                                        <i class="mdi mdi-chart-box me-1" style="color: #06b6d4;"></i>
+                                        {{ __('عدد الأسهم للبيع') }}
+                                    </label>
+                                    <input type="number" class="form-control" id="shares_count" name="shares_count"
+                                        min="1" required>
+                                    <small class="text-muted">{{ __('أدخل عدد الأسهم التي تريد بيعها') }}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="price_per_share">
+                                        <i class="mdi mdi-cash me-1" style="color: #06b6d4;"></i>
+                                        {{ __('سعر السهم الواحد') }}
+                                    </label>
+                                    <input type="number" class="form-control" id="price_per_share"
+                                        name="price_per_share" step="0.01" min="0.01" required>
+                                    <small class="text-muted" id="suggested_price"></small>
+                                </div>
+                            </div>
+
+                            {{-- Column 2 --}}
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="description">
+                                        <i class="mdi mdi-text me-1" style="color: #06b6d4;"></i>
+                                        {{ __('وصف العرض') }} ({{ __('اختياري') }})
+                                    </label>
+                                    <textarea class="form-control" id="description" name="description" rows="5"
+                                        placeholder="{{ __('أضف وصفاً للعرض لجذب المشترين...') }}"></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="expires_in_days">
+                                        <i class="mdi mdi-clock-outline me-1" style="color: #06b6d4;"></i>
+                                        {{ __('مدة صلاحية العرض') }}
+                                    </label>
+                                    <select class="form-select" id="expires_in_days" name="expires_in_days">
+                                        <option value="">{{ __('بدون انتهاء') }}</option>
+                                        <option value="7">{{ __('7 أيام') }}</option>
+                                        <option value="15">{{ __('15 يوم') }}</option>
+                                        <option value="30" selected>{{ __('30 يوم') }}</option>
+                                        <option value="60">{{ __('60 يوم') }}</option>
+                                        <option value="90">{{ __('90 يوم') }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <strong><i
+                                    class="mdi mdi-information-outline me-2"></i>{{ __('ما هو السوق الثانوي؟') }}</strong>
+                            <p class="mb-1 mt-2 small">
+                                {{ __('السوق الثانوي هو منصة تتيح للمستثمرين بيع أسهمهم لمستثمرين آخرين مباشرة (peer-to-peer). بعد عرض أسهمك، سيظهر عرضك لجميع المستثمرين المسجلين في المنصة.') }}
+                            </p>
+                            <p class="mb-0 small">
+                                <strong>{{ __('ملاحظة:') }}</strong>
+                                {{ __('يمكنك بيع جزء من أسهمك والاحتفاظ بالباقي.') }}
+                            </p>
+                        </div>
+
+                        <div id="sellError" class="alert alert-danger d-none"></div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="mdi mdi-close"></i> {{ __('إلغاء') }}
+                        </button>
+                        <button type="submit" class="btn" id="submitSellBtn"
+                            style="background: #06b6d4; border-color: #06b6d4; color: white;">
+                            <i class="mdi mdi-cash-multiple me-1"></i>{{ __('عرض للبيع') }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -550,6 +849,51 @@
                         '<div class="alert alert-info mb-0 d-flex align-items-center justify-content-center" style="height: 200px;"><i class="mdi mdi-information-outline me-2"></i>لا توجد بيانات لعرضها</div>';
                 }
             }
+        });
+    </script>
+
+    {{-- Sell Modal Script --}}
+    <script>
+        $(document).ready(function() {
+            // Handle sell button click using jQuery (Bootstrap 4)
+            $('.sell-btn').on('click', function() {
+                const holdingId = $(this).data('holding-id');
+                const title = $(this).data('title');
+                const sharesOwned = $(this).data('shares-owned');
+                const currentPrice = $(this).data('price');
+                const currency = $(this).data('currency');
+
+                console.log('Opening sell modal for:', holdingId, title);
+
+                // Populate modal
+                $('#holding_id').val(holdingId);
+                $('#offer_title').text(title);
+                $('#owned_shares').text(sharesOwned + ' ' + '{{ __('سهم') }}');
+                $('#shares_count').attr('max', sharesOwned);
+                $('#price_per_share').val(currentPrice);
+                $('#suggested_price').text('{{ __('السعر الحالي') }}: ' + currentPrice + ' ' + currency);
+
+                // Reset form
+                $('#sellError').addClass('d-none');
+                $('#shares_count').val('');
+                $('#description').val('');
+
+                // Show modal using jQuery (Bootstrap 4)
+                $('#sellModal').modal('show');
+            });
+
+            // Handle form submission
+            $('#sellForm').on('submit', function(e) {
+                // Show loading state
+                const submitBtn = $('#submitSellBtn');
+                submitBtn.prop('disabled', true);
+                submitBtn.html(
+                    '<span class="spinner-border spinner-border-sm me-2"></span>{{ __('جاري العرض...') }}'
+                );
+
+                // Let form submit normally
+                return true;
+            });
         });
     </script>
 @endpush

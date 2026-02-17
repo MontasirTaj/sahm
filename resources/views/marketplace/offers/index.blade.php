@@ -709,6 +709,30 @@
             </div>
         </div>
 
+        {{-- Secondary Market Banner --}}
+        @auth('web')
+            <div class="alert alert-dismissible fade show mb-4" role="alert"
+                style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; border-radius: 15px; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="mdi mdi-storefront" style="font-size: 3rem; color: white; opacity: 0.9;"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-4 text-white">
+                        <h5 class="alert-heading mb-2">
+                            <i class="mdi mdi-star-circle me-2"></i>{{ __('اكتشف السوق الثانوي!') }}
+                        </h5>
+                        <p class="mb-2">
+                            {{ __('شاهد عروض الأسهم المعروضة للبيع من مستثمرين آخرين. قد تجد أسعاراً أفضل وفرصاً مميزة!') }}
+                        </p>
+                        <a href="{{ route('buyer.secondary-market.index') }}" class="btn btn-light btn-sm">
+                            <i class="mdi mdi-arrow-left me-2"></i>{{ __('تصفح السوق الثانوي الآن') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @endauth
+
         <!-- Main Content with Sidebar -->
         <div class="row">
             <!-- Filters Sidebar -->

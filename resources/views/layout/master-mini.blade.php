@@ -310,8 +310,17 @@
                     @php($loggedIn = Illuminate\Support\Facades\Auth::guard('web')->check())
                     @if ($loggedIn)
                         @php($user = Illuminate\Support\Facades\Auth::guard('web')->user())
-                        <a href="{{ route('buyer.dashboard') }}"
-                            class="btn btn-sm btn-light">{{ __('لوحة المشتري') }}</a>
+                        @php($buyer = \App\Models\Central\Buyer::on('central')->where('user_id', $user->id)->first())
+                        <span style="color: white; margin-inline-end: 10px; font-weight: 500;">
+                            <i class="mdi mdi-account-circle"></i> {{ $buyer ? $buyer->name : $user->name }}
+                        </span>
+                        <a href="{{ route('buyer.dashboard') }}" class="btn btn-sm btn-light">
+                            <i class="mdi mdi-wallet"></i> {{ __('محفظتي') }}
+                        </a>
+                        <a href="{{ route('buyer.secondary-market.index') }}" class="btn btn-sm"
+                            style="margin-inline-start:8px; background: #06b6d4; border-color: #06b6d4; color: white;">
+                            <i class="mdi mdi-storefront"></i> {{ __('السوق الثانوي') }}
+                        </a>
                         <form action="{{ route('marketplace.logout') }}" method="POST" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-light"

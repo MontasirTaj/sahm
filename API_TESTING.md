@@ -1,8 +1,8 @@
-# سهمي API - اختبار سريع
+# Sahm API - Quick Testing
 
-## اختبار الـ API
+## Testing the API
 
-### 1. تحقق من أن الـ API يعمل
+### 1. Verify API is Working
 
 ```bash
 curl http://localhost:8000/api/health
@@ -20,9 +20,9 @@ curl http://localhost:8000/api/health
 
 ---
 
-### 2. استخدام Postman
+### 2. Using Postman
 
-#### A. تسجيل مستخدم جديد
+#### A. Register New User
 
 **Method:** POST  
 **URL:** `http://localhost:8000/api/v1/auth/register`  
@@ -47,7 +47,7 @@ Accept: application/json
 
 ---
 
-#### B. تسجيل الدخول
+#### B. Login
 
 **Method:** POST  
 **URL:** `http://localhost:8000/api/v1/auth/login`  
@@ -68,7 +68,7 @@ Accept: application/json
 
 ---
 
-#### C. الحصول على العروض
+#### C. Get Offers
 
 **Method:** GET  
 **URL:** `http://localhost:8000/api/v1/offers?tenant_domain=your-tenant-domain.com`  
@@ -80,7 +80,7 @@ X-Tenant-Domain: your-tenant-domain.com
 
 ---
 
-#### D. شراء أسهم (يتطلب Token)
+#### D. Purchase Shares (Requires Token)
 
 **Method:** POST  
 **URL:** `http://localhost:8000/api/v1/purchase`  
@@ -103,7 +103,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-#### E. لوحة تحكم المشتري (يتطلب Token)
+#### E. Buyer Dashboard (Requires Token)
 
 **Method:** GET  
 **URL:** `http://localhost:8000/api/v1/buyer/dashboard`  
@@ -115,9 +115,9 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### 3. استخدام cURL
+### 3. Using cURL
 
-#### تسجيل دخول
+#### Login
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -125,14 +125,14 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   -d "{\"tenant_domain\":\"tenant.com\",\"email\":\"ahmed@test.com\",\"password\":\"password123\"}"
 ```
 
-#### الحصول على العروض
+#### Get Offers
 ```bash
 curl -X GET "http://localhost:8000/api/v1/offers?tenant_domain=tenant.com" \
   -H "Accept: application/json" \
   -H "X-Tenant-Domain: tenant.com"
 ```
 
-#### شراء (مع token)
+#### Purchase (with token)
 ```bash
 curl -X POST http://localhost:8000/api/v1/purchase \
   -H "Content-Type: application/json" \
@@ -143,7 +143,7 @@ curl -X POST http://localhost:8000/api/v1/purchase \
 
 ---
 
-### 4. استخدام PHP/Guzzle في تطبيق آخر
+### 4. Using PHP/Guzzle in another application
 
 ```php
 use GuzzleHttp\Client;
@@ -190,7 +190,7 @@ $response = $client->post('v1/purchase', [
 
 ---
 
-### 5. Flutter/Dart (لتطبيق الموبايل)
+### 5. Flutter/Dart (for mobile application)
 
 ```dart
 import 'package:http/http.dart' as http;
@@ -265,23 +265,23 @@ class ApiService {
 
 ---
 
-### 6. خطوات إضافية مطلوبة
+### 6. Additional Required Steps
 
 #### Check Tenant Domain
-تأكد من أن لديك tenant في قاعدة البيانات:
+Make sure you have a tenant in the database:
 
 ```sql
 -- In central database
 SELECT * FROM tenants WHERE domain = 'your-tenant-domain.com';
 ```
 
-إذا لم يكن موجوداً، أنشئه:
+If not found, create it:
 ```sql
 INSERT INTO tenants (domain, database, status, created_at, updated_at) 
 VALUES ('tenant.com', 'tenant_database_name', 'active', NOW(), NOW());
 ```
 
-#### إنشاء دور buyer في Tenant
+#### Create buyer role in Tenant
 ```bash
 php artisan tinker
 
@@ -296,45 +296,45 @@ DB::connection('tenant')->table('roles')->insert([
 
 ---
 
-### 7. استكشاف الأخطاء
+### 7. Troubleshooting
 
-#### خطأ "tenant_domain مطلوب"
-- تأكد من إرسال `tenant_domain` في الـ body أو `X-Tenant-Domain` في الـ header
+#### Error "tenant_domain is required"
+- Make sure to send `tenant_domain` in body or `X-Tenant-Domain` in header
 
-#### خطأ "Unauthenticated"
-- تأكد من إرسال `Authorization: Bearer {token}` في الـ header
+#### Error "Unauthenticated"
+- Make sure to send `Authorization: Bearer {token}` in header
 
-#### خطأ "النطاق غير موجود"
-- تحقق من وجود tenant في قاعدة البيانات المركزية
+#### Error "Domain not found"
+- Verify tenant exists in central database
 
-#### خطأ "دور buyer غير موجود"
-- أنشئ دور buyer في قاعدة بيانات tenant
+#### Error "buyer role not found"
+- Create buyer role in tenant database
 
 ---
 
-## Endpoints المتاحة
+## Available Endpoints
 
-✅ **Public (بدون مصادقة):**
+✅ **Public (without authentication):**
 - `GET /api/health` - Health check
-- `POST /api/v1/auth/register` - التسجيل
-- `POST /api/v1/auth/login` - تسجيل الدخول
-- `GET /api/v1/offers` - قائمة العروض
-- `GET /api/v1/offers/{id}` - تفاصيل عرض
-- `GET /api/v1/offers/meta/cities` - المدن
-- `GET /api/v1/offers/meta/statistics` - الإحصائيات
+- `POST /api/v1/auth/register` - Register
+- `POST /api/v1/auth/login` - Login
+- `GET /api/v1/offers` - Offers list
+- `GET /api/v1/offers/{id}` - Offer details
+- `GET /api/v1/offers/meta/cities` - Cities
+- `GET /api/v1/offers/meta/statistics` - Statistics
 
-🔒 **Protected (تتطلب مصادقة):**
-- `POST /api/v1/auth/logout` - تسجيل الخروج
-- `GET /api/v1/auth/profile` - البيانات الشخصية
-- `PUT /api/v1/auth/profile` - تحديث البيانات
-- `POST /api/v1/purchase` - الشراء
-- `POST /api/v1/purchase/confirm-payment` - تأكيد الدفع
-- `POST /api/v1/purchase/{id}/cancel` - إلغاء
-- `GET /api/v1/buyer/dashboard` - لوحة التحكم
-- `GET /api/v1/buyer/operations` - العمليات
-- `GET /api/v1/buyer/operations/{id}` - تفاصيل عملية
-- `GET /api/v1/buyer/my-shares` - أسهمي
+🔒 **Protected (requires authentication):**
+- `POST /api/v1/auth/logout` - Logout
+- `GET /api/v1/auth/profile` - Profile
+- `PUT /api/v1/auth/profile` - Update profile
+- `POST /api/v1/purchase` - Purchase
+- `POST /api/v1/purchase/confirm-payment` - Confirm payment
+- `POST /api/v1/purchase/{id}/cancel` - Cancel
+- `GET /api/v1/buyer/dashboard` - Dashboard
+- `GET /api/v1/buyer/operations` - Operations
+- `GET /api/v1/buyer/operations/{id}` - Operation details
+- `GET /api/v1/buyer/my-shares` - My shares
 
 ---
 
-للتوثيق الكامل، راجع `API_DOCUMENTATION.md`
+For complete documentation, see `API_DOCUMENTATION.md`

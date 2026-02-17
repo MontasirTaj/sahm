@@ -69,7 +69,19 @@ class BuyerDashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        return view('buyer.dashboard', compact('user', 'buyer', 'holdings', 'operations', 'stats', 'operationsByType', 'operationsByStatus'));
+        // Get buyer's sale offers
+        $saleOffers = DB::connection('central')->table('buyer_sale_offers')
+            ->join('buyer_holdings', 'buyer_sale_offers.holding_id', '=', 'buyer_holdings.id')
+            ->join('share_offers', 'buyer_holdings.offer_id', '=', 'share_offers.id')
+            ->select(
+                'buyer_sale_offers.*',
+                'share_offers.title as offer_title'
+            )
+            ->where('buyer_sale_offers.seller_buyer_id', $buyer->id)
+            ->orderByDesc('buyer_sale_offers.created_at')
+            ->get();
+
+        return view('buyer.dashboard', compact('user', 'buyer', 'holdings', 'operations', 'stats', 'operationsByType', 'operationsByStatus', 'saleOffers'));
     }
 
     public function profile()

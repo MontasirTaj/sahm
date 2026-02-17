@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OfferController;
 use App\Http\Controllers\Api\OfferManagementController;
 use App\Http\Controllers\Api\PurchaseController;
 use App\Http\Controllers\Api\BuyerController;
+use App\Http\Controllers\Api\BuyerSalesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,8 +23,13 @@ Route::prefix('v1')->group(function () {
     
     // المصادقة (Authentication)
     Route::prefix('auth')->group(function () {
+        // للمشترين (Buyers)
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
+        
+        // لمديري Tenant (Tenant Admins)
+        Route::post('/tenant-register', [AuthController::class, 'registerTenantAdmin']);
+        Route::post('/tenant-login', [AuthController::class, 'loginTenantAdmin']);
     });
 
     // العروض (Public Access)
@@ -52,7 +58,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/{operationId}/cancel', [PurchaseController::class, 'cancel']);
     });
 
-    // بيانات المشتري (Buyer Dashboard & Data)
+    // بيانات المحفظة (Portfolio Dashboard & Data)
     Route::prefix('buyer')->group(function () {
         Route::get('/dashboard', [BuyerController::class, 'dashboard']);
         Route::get('/operations', [BuyerController::class, 'operations']);
@@ -60,11 +66,28 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/my-shares', [BuyerController::class, 'myShares']);
     });
 
+    // السوق الثانوي - بيع وشراء الأسهم بين المشترين (Secondary Market)
+    Route::prefix('secondary-market')->group(function () {
+        // عرض أسهم للبيع
+        Route::post('/sell', [BuyerSalesController::class, 'createSaleOffer']);
+        
+        // عروضي المعروضة للبيع
+        Route::get('/my-sale-offers', [BuyerSalesController::class, 'mySaleOffers']);
+        
+        // إلغاء عرض بيع
+        Route::delete('/sale-offers/{saleOfferId}', [BuyerSalesController::class, 'cancelSaleOffer']);
+        
+        // شراء من السوق الثانوي
+        Route::post('/buy', [BuyerSalesController::class, 'buyFromSecondaryMarket']);
+    });
+
     // إدارة العروض (Offer Management - للمسؤولين)
     Route::prefix('offers')->group(function () {
         Route::post('/', [OfferManagementController::class, 'store']);
         Route::put('/{id}', [OfferManagementController::class, 'update']);
         Route::delete('/{id}', [OfferManagementController::class, 'destroy']);
+        Route::post('/{id}/upload-image', [OfferManagementController::class, 'uploadCoverImage']);
+        Route::post('/{id}/upload-images', [OfferManagementController::class, 'uploadMultipleImages']);
     });
 });
 

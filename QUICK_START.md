@@ -1,15 +1,15 @@
-# 🚀 دليل الاختبار السريع - تطبيق المشترين
+# 🚀 Quick Testing Guide - Buyer App
 
-## 📝 معلومات مهمة
-✅ **تم تبسيط النظام**: المشترون لا يحتاجون `tenant_domain` بعد الآن!  
-✅ **جميع APIs جاهزة**: 18 endpoint مسجلة بنجاح  
-✅ **قاعدة البيانات المركزية**: جميع عمليات المشترين في مكان واحد
+## 📋 Important Information
+✅ **System Simplified**: Buyers no longer need `tenant_domain`!  
+✅ **All APIs Ready**: 18 endpoints registered successfully  
+✅ **Central Database**: All buyer operations in one place
 
 ---
 
-## 🎯 خطوات الاختبار في Postman
+## 🎯 Testing Steps in Postman
 
-### الخطوة 1: تسجيل مشتري جديد
+### Step 1: Register New Buyer
 
 ```http
 POST http://localhost:8000/api/v1/auth/register
@@ -45,7 +45,7 @@ Content-Type: application/json
 
 ---
 
-### الخطوة 2: تسجيل دخول
+### Step 2: Login
 
 ```http
 POST http://localhost:8000/api/v1/auth/login
@@ -74,7 +74,7 @@ Content-Type: application/json
 
 ---
 
-### الخطوة 3: عرض جميع العروض (بدون Token)
+### Step 3: View All Offers (Without Token)
 
 ```http
 GET http://localhost:8000/api/v1/offers?status=active
@@ -104,7 +104,7 @@ GET http://localhost:8000/api/v1/offers?status=active
 
 ---
 
-### الخطوة 4: تفاصيل عرض محدد
+### Step 4: View Specific Offer Details
 
 ```http
 GET http://localhost:8000/api/v1/offers/1
@@ -130,7 +130,7 @@ GET http://localhost:8000/api/v1/offers/1
 
 ---
 
-### الخطوة 5: شراء أسهم (مع Token)
+### Step 5: Purchase Shares (With Token)
 
 ```http
 POST http://localhost:8000/api/v1/purchase
@@ -165,7 +165,7 @@ Content-Type: application/json
 
 ---
 
-### الخطوة 6: تأكيد الدفع
+### Step 6: Confirm Payment
 
 ```http
 POST http://localhost:8000/api/v1/purchase/confirm-payment
@@ -197,14 +197,14 @@ Content-Type: application/json
 
 ---
 
-### الخطوة 7: عرض أسهمي المملوكة
+### Step 7: View My Owned Shares
 
 ```http
 GET http://localhost:8000/api/v1/buyer/my-shares
 Authorization: Bearer YOUR_TOKEN_HERE
 ```
 
-**✅ النتيجة المتوقعة:**
+**✅ Expected Result:**
 ```json
 {
     "success": true,
@@ -230,7 +230,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### الخطوة 8: لوحة التحكم
+### Step 8: Dashboard
 
 ```http
 GET http://localhost:8000/api/v1/buyer/dashboard
@@ -256,7 +256,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### الخطوة 9: عرض الملف الشخصي
+### Step 9: View Profile
 
 ```http
 GET http://localhost:8000/api/v1/auth/profile
@@ -279,7 +279,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### الخطوة 10: تحديث الملف الشخصي
+### Step 10: Update Profile
 
 ```http
 PUT http://localhost:8000/api/v1/auth/profile
@@ -299,7 +299,7 @@ Content-Type: application/json
 
 ---
 
-## 🔍 استكشاف الأخطاء
+## 🔍 Troubleshooting
 
 ### Problem: "Unauthenticated"
 **Solution:**
@@ -307,13 +307,13 @@ Content-Type: application/json
 - Check token validity
 - Try new login
 
-### Problem: "العرض غير موجود"
+### Problem: "Offer not found"
 **Solution:**
 - Check if data exists in `share_offers` table
 - Make sure to use correct `offer_id`
 - Try GET /api/v1/offers to get offers list
 
-### Problem: "عدد الأسهم المتاحة غير كافٍ"
+### Problem: "Not enough available shares"
 **Solution:**
 - Check `available_shares` in offer details
 - Reduce requested shares count
@@ -327,26 +327,26 @@ Make sure all routes are registered (should see 18+ routes)
 
 ---
 
-## 🗄️ التحقق من قاعدة البيانات
+## 🗄️ Database Verification
 
-### 1. التحقق من المشترين
+### 1. Check Buyers
 ```sql
 SELECT * FROM users WHERE email LIKE '%test.com';
 ```
 
-### 2. التحقق من العروض
+### 2. Check Offers
 ```sql
 SELECT id, title, city, available_shares, status FROM share_offers;
 ```
 
-### 3. التحقق من العمليات
+### 3. Check Operations
 ```sql
 SELECT id, buyer_id, offer_id, shares_count, status, amount_total 
 FROM share_operations 
 ORDER BY created_at DESC;
 ```
 
-### 4. التحقق من Tokens
+### 4. Check Tokens
 ```sql
 SELECT id, tokenable_id, name, created_at, last_used_at 
 FROM personal_access_tokens 
@@ -355,56 +355,56 @@ ORDER BY id DESC;
 
 ---
 
-## 📚 ملفات التوثيق الكاملة
+## 📚 Complete Documentation Files
 
-1. **API_BUYERS_GUIDE.md** - دليل شامل للمشترين مع جميع الـ endpoints
-2. **API_PURCHASE_GUIDE.md** - دليل كامل لعمليات الشراء
-3. **API_UPDATES_SUMMARY.md** - ملخص جميع التحديثات
-4. **API_DOCUMENTATION.md** - توثيق شامل لجميع الـ APIs
-5. **API_TESTING.md** - أمثلة اختبار متقدمة
-
----
-
-## ✅ Checklist قبل البدء
-
-- [ ] قاعدة البيانات المركزية موجودة وتحتوي على:
-  - [ ] جدول `users`
-  - [ ] جدول `share_offers` (مع بيانات تجريبية)
-  - [ ] جدول `share_operations`
-  - [ ] جدول `personal_access_tokens`
-
-- [ ] Laravel يعمل بشكل صحيح
-  - [ ] `php artisan serve` يعمل
-  - [ ] الاتصال بقاعدة البيانات صحيح
-
-- [ ] APIs مسجلة
-  - [ ] `php artisan route:list --path=api` يظهر 18+ routes
-
-- [ ] Postman جاهز
-  - [ ] Environment متغيرات: base_url, token
-  - [ ] Headers جاهزة
+1. **API_BUYERS_GUIDE.md** - Comprehensive guide for buyers with all endpoints
+2. **API_PURCHASE_GUIDE.md** - Complete guide for purchase operations
+3. **API_UPDATES_SUMMARY.md** - Summary of all updates
+4. **API_DOCUMENTATION.md** - Comprehensive documentation for all APIs
+5. **API_TESTING.md** - Advanced testing examples
 
 ---
 
-## 🎉 مبروك!
+## ✅ Checklist Before Starting
 
-إذا اتممت جميع الخطوات بنجاح، فأنت الآن جاهز لتطوير تطبيق Flutter وربطه بالـ APIs.
+- [ ] Central database exists and contains:
+  - [ ] `users` table
+  - [ ] `share_offers` table (with test data)
+  - [ ] `share_operations` table
+  - [ ] `personal_access_tokens` table
+
+- [ ] Laravel is running properly
+  - [ ] `php artisan serve` is working
+  - [ ] Database connection is correct
+
+- [ ] APIs are registered
+  - [ ] `php artisan route:list --path=api` shows 18+ routes
+
+- [ ] Postman is ready
+  - [ ] Environment variables: base_url, token
+  - [ ] Headers are ready
+
+---
+
+## 🎉 Congratulations!
+
+If you completed all steps successfully, you are now ready to develop a Flutter app and connect it to the APIs.
 
 **Next Steps:**
-1. ✅ تكامل مع بوابة دفع حقيقية (Stripe / PayPal / HyperPay)
-2. ✅ إضافة صور للعروض
-3. ✅ إشعارات Push للمشترين
-4. ✅ تقارير ولوحات تحكم متقدمة
-5. ✅ نظام تقييم ومراجعات
+1. ✅ Integration with real payment gateway (Stripe / PayPal / HyperPay)
+2. ✅ Add images for offers
+3. ✅ Push notifications for buyers
+4. ✅ Advanced reports and dashboards
+5. ✅ Rating and review system
 
 ---
 
-## 🆘 الدعم
+## 🆘 Support
 
-إذا واجهت أي مشكلة:
-1. تحقق من ملفات logs في `storage/logs/laravel.log`
-2. راجع ملفات التوثيق المذكورة أعلاه
-3. تأكد من أن جميع الـ migrations قد تم تشغيلها
-4. تحقق من الـ console في Postman للأخطاء التفصيلية
+If you encounter any problems:
+1. Check log files in `storage/logs/laravel.log`
+2. Review the documentation files mentioned above
+3. Make sure all migrations have been run
+4. Check the console in Postman for detailed errors
 
-**جميع APIs جاهزة للاستخدام! 🚀**
+**All APIs are ready to use! 🚀**

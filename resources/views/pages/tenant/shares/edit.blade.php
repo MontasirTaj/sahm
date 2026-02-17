@@ -67,8 +67,9 @@
                                     @foreach ($offer->media as $img)
                                         <div class="position-relative mr-2 mb-2 media-item" data-path="{{ $img }}"
                                             style="width:120px;height:90px;overflow:hidden;border:1px solid #eee;border-radius:6px;">
-                                            <img src="{{ asset('storage/' . $img) }}" alt="img"
-                                                style="width:100%;height:100%;object-fit:cover;">
+                                            <img src="{{ asset('storage/' . $img) }}" alt="صورة العرض"
+                                                style="width:100%;height:100%;object-fit:cover;"
+                                                onerror="this.onerror=null; this.src='{{ asset('assets/images/placeholder.png') }}'; this.alt='فشل تحميل الصورة';">
                                             <button type="button" class="btn btn-sm btn-danger position-absolute"
                                                 title="{{ __('حذف') }}"
                                                 style="top:4px;{{ app()->getLocale() === 'ar' ? 'left' : 'right' }}:4px"
@@ -178,6 +179,16 @@
                     const item = btn.closest('.media-item');
                     const path = item?.dataset?.path;
                     if (!path) return;
+
+                    // التحقق من عدد الصور المتبقية
+                    const currentImages = mediaWrap.querySelectorAll('.media-item').length;
+                    if (currentImages <= 1) {
+                        showToast(
+                            '{{ __('لا يمكن حذف جميع الصور. يجب أن يبقى صورة واحدة على الأقل للعرض') }}',
+                            true);
+                        return;
+                    }
+
                     if (!confirm('{{ __('حذف هذه الصورة؟') }}')) return;
                     const url =
                         '{{ route('tenant.subdomain.shares.media.remove', ['subdomain' => $subdomain, 'share' => $offer->id]) }}';
@@ -192,15 +203,23 @@
                             }
                         })
                         .then(r => {
-                            if (!r.ok) throw new Error('fail');
+                            if (!r.ok) {
+                                return r.json().then(data => {
+                                    throw new Error(data.error || 'fail');
+                                });
+                            }
                             return r.json();
                         })
-                        .then(() => {
-                            item.remove();
-                            showToast('{{ __('تم حذف الصورة') }}');
+                        .then((data) => {
+                            if (data.ok) {
+                                item.remove();
+                                showToast('{{ __('تم حذف الصورة') }}');
+                            } else {
+                                showToast(data.error || '{{ __('تعذر حذف الصورة') }}', true);
+                            }
                         })
-                        .catch(() => {
-                            showToast('{{ __('تعذر حذف الصورة') }}', true);
+                        .catch((err) => {
+                            showToast(err.message || '{{ __('تعذر حذف الصورة') }}', true);
                         });
                 });
             }

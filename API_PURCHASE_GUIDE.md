@@ -1,12 +1,12 @@
-﻿# دليل APIs عمليات الشراء (Purchase APIs)
+﻿# Purchase APIs Guide
 
-## نظرة عامة
+## Overview
 
-تم تبسيط عمليات الشراء لتعمل مباشرة مع قاعدة البيانات المركزية دون الحاجة لتحديد `tenant_domain`. المشتري يمكنه الشراء من أي عرض بسهولة.
+Purchase operations have been simplified to work directly with the central database without needing to specify `tenant_domain`. Buyers can purchase from any offer easily.
 
 ---
 
-## 1. شراء أسهم (Create Purchase)
+## 1. Purchase Shares (Create Purchase)
 
 **Endpoint:** `POST /api/v1/purchase`
 
@@ -92,7 +92,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-## 2. تأكيد الدفع (Confirm Payment)
+## 2. Confirm Payment
 
 **Endpoint:** `POST /api/v1/purchase/confirm-payment`
 
@@ -189,7 +189,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-## 3. إلغاء عملية شراء (Cancel Operation)
+## 3. Cancel Purchase Operation
 
 **Endpoint:** `POST /api/v1/purchase/{operationId}/cancel`
 
@@ -242,9 +242,9 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-## العمليات التلقائية
+## Automatic Operations
 
-### عند إنشاء عملية شراء:
+### When creating a purchase operation:
 1. ✅ التحقق من وجود العرض في قاعدة البيانات المركزية
 2. ✅ التحقق من توفر الأسهم المطلوبة
 3. ✅ التحقق من أن العرض نشط (`status = 'active'`)
@@ -252,16 +252,16 @@ Authorization: Bearer YOUR_TOKEN_HERE
 5. ✅ إنشاء سجل في `share_operations` بحالة `pending`
 6. ✅ خصم الأسهم من `available_shares` (حجز مؤقت)
 
-### عند تأكيد الدفع (completed):
+### When confirming payment (completed):
 1. ✅ تحديث حالة العملية إلى `completed`
 2. ✅ حفظ `payment_id`
 3. ✅ إضافة الأسهم إلى `sold_shares`
 
-### عند فشل الدفع (failed):
+### When payment fails (failed):
 1. ✅ تحديث حالة العملية إلى `failed`
 2. ✅ إرجاع الأسهم إلى `available_shares`
 
-### عند إلغاء العملية:
+### When canceling operation:
 1. ✅ التحقق من أن الحالة `pending`
 2. ✅ تحديث الحالة إلى `cancelled`
 3. ✅ إرجاع الأسهم إلى `available_shares`
@@ -289,9 +289,9 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-## سيناريو الاختبار الكامل
+## Complete Testing Scenario
 
-### 1. المصادقة
+### 1. Authentication
 ```bash
 POST /api/v1/auth/login
 {
@@ -300,17 +300,17 @@ POST /api/v1/auth/login
 }
 ```
 
-### 2. عرض قائمة العروض
+### 2. View Offers List
 ```bash
 GET /api/v1/offers
 ```
 
-### 3. عرض تفاصيل عرض محدد
+### 3. View Specific Offer Details
 ```bash
 GET /api/v1/offers/1
 ```
 
-### 4. شراء أسهم
+### 4. Purchase Shares
 ```bash
 POST /api/v1/purchase
 Authorization: Bearer YOUR_TOKEN
@@ -321,10 +321,10 @@ Authorization: Bearer YOUR_TOKEN
 }
 ```
 
-### 5. عملية الدفع (خارجي - Stripe/PayPal/إلخ)
+### 5. Payment Process (External - Stripe/PayPal/etc)
 *Here user is redirected to payment gateway to complete the transaction*
 
-### 6. تأكيد الدفع
+### 6. Confirm Payment
 ```bash
 POST /api/v1/purchase/confirm-payment
 Authorization: Bearer YOUR_TOKEN
@@ -335,13 +335,13 @@ Authorization: Bearer YOUR_TOKEN
 }
 ```
 
-### 7. التحقق من العملية
+### 7. Verify Operation
 ```bash
 GET /api/v1/buyer/operations/123
 Authorization: Bearer YOUR_TOKEN
 ```
 
-### 8. عرض جميع الأسهم المملوكة
+### 8. View All Owned Shares
 ```bash
 GET /api/v1/buyer/my-shares
 Authorization: Bearer YOUR_TOKEN
@@ -349,29 +349,29 @@ Authorization: Bearer YOUR_TOKEN
 
 ---
 
-## ملاحظات مهمة
+## Important Notes
 
-### ✅ التبسيطات الجديدة:
-- **لا حاجة لـ tenant_domain**: تمت إزالة هذا المتطلب من جميع APIs الخاصة بالشراء
-- **قاعدة بيانات واحدة**: جميع العمليات تتم في قاعدة البيانات المركزية فقط
-- **معرف واحد**: يكفي `offer_id` من قاعدة البيانات المركزية
-- **tenant_id تلقائي**: يتم الحصول عليه من العرض نفسه تلقائيًا
+### ✅ New Simplifications:
+- **No need for tenant_domain**: This requirement has been removed from all purchase APIs
+- **Single database**: All operations occur in the central database only
+- **Single identifier**: Only `offer_id` from central database is needed
+- **Automatic tenant_id**: Obtained from the offer itself automatically
 
-### 🔒 الأمان:
-- يمكن للمشتري فقط إلغاء عملياته الخاصة
-- لا يمكن إلغاء عملية مكتملة أو فاشلة
-- جميع العمليات محمية بـ Bearer Token
+### 🔒 Security:
+- Buyer can only cancel their own operations
+- Cannot cancel a completed or failed operation
+- All operations are protected with Bearer Token
 
-### 📊 تتبع البيانات:
-- كل عملية لها `external_reference` فريد
-- يتم حفظ `metadata` لكل عملية
-- يتم ربط العملية بالمشتري (`buyer_id`)، العرض (`offer_id`)، والتينانت (`tenant_id`)
+### 📊 Data Tracking:
+- Each operation has a unique `external_reference`
+- `metadata` is saved for each operation
+- Operation is linked to buyer (`buyer_id`), offer (`offer_id`), and tenant (`tenant_id`)
 
 ---
 
-## الفرق بين النسخة القديمة والجديدة
+## Difference Between Old and New Version
 
-### ❌ قديم (معقد):
+### ❌ Old (Complex):
 ```json
 {
     "tenant_domain": "company1",
@@ -381,7 +381,7 @@ Authorization: Bearer YOUR_TOKEN
 }
 ```
 
-### ✅ جديد (مبسط):
+### ✅ New (Simplified):
 ```json
 {
     "offer_id": 1,  // from central database directly
@@ -455,25 +455,25 @@ Future<Map<String, dynamic>> cancelOperation(int operationId) async {
 
 ---
 
-## استكشاف الأخطاء
+## Troubleshooting
 
-### Problem: "العرض غير موجود"
+### Problem: "Offer not found"
 **Solution:** Make sure to use `offer_id` from central database (`share_offers` table)
 
-### Problem: "عدد الأسهم المتاحة غير كافٍ"
+### Problem: "Not enough available shares"
 **Solution:** Query `available_shares` from offer API before purchase:
 ```bash
 GET /api/v1/offers/{id}
 ```
 
-### Problem: "العرض غير نشط حالياً"
+### Problem: "Offer is not currently active"
 **Solution:** Check offer `status`. Must be `active`
 
-### Problem: "لا يمكن إلغاء هذه العملية"
+### Problem: "Cannot cancel this operation"
 **Solution:** Can only cancel operations with `pending` status
 
 ---
 
-## الخاتمة
+## Conclusion
 
-تم تبسيط نظام الشراء بشكل كبير ليعمل مباشرة مع قاعدة البيانات المركزية، مما يجعله أسهل للاستخدام في تطبيقات الموبايل ويقلل من التعقيد البرمجي.
+The purchase system has been greatly simplified to work directly with the central database, making it easier to use in mobile applications and reducing programming complexity.

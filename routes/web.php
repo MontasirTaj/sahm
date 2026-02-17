@@ -555,12 +555,21 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
             Route::post('register', [\App\Http\Controllers\MarketplaceAuthController::class, 'register'])->name('marketplace.register.post');
             Route::post('logout', [\App\Http\Controllers\MarketplaceAuthController::class, 'logout'])->name('marketplace.logout');
 
-            // Buyer dashboard (central)
+            // Investor portfolio (central) - المحفظة الاستثمارية
             Route::middleware('auth:web')->prefix('buyer')->as('buyer.')->group(function(){
                 Route::get('dashboard', [\App\Http\Controllers\BuyerDashboardController::class, 'index'])->name('dashboard');
                 Route::get('profile', [\App\Http\Controllers\BuyerDashboardController::class, 'profile'])->name('profile');
                 Route::post('profile', [\App\Http\Controllers\BuyerDashboardController::class, 'updateProfile'])->name('profile.update');
                 Route::post('password', [\App\Http\Controllers\BuyerDashboardController::class, 'updatePassword'])->name('password.update');
+                
+                // السوق الثانوي - Secondary Market
+                Route::prefix('secondary-market')->as('secondary-market.')->group(function(){
+                    Route::get('/', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'index'])->name('index');
+                    Route::get('/offer/{id}', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'show'])->name('show');
+                    Route::post('sell', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'createSaleOffer'])->name('sell');
+                    Route::post('buy', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'buy'])->name('buy');
+                    Route::delete('cancel/{id}', [\App\Http\Controllers\BuyerSecondaryMarketController::class, 'cancelSaleOffer'])->name('cancel');
+                });
             });
         });
     });

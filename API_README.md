@@ -1,64 +1,64 @@
-# دليل تشغيل API - سهمي
+# API Setup Guide - Sahm
 
-## نظرة عامة
+## Overview
 
-تم إنشاء APIs كاملة لتطبيق الموبايل منفصلة تماماً عن الموقع الإلكتروني.
+Complete APIs have been created for the mobile application, completely separate from the website.
 
 ---
 
-## الملفات المضافة
+## Added Files
 
 ### Controllers
 ```
 app/Http/Controllers/Api/
-├── AuthController.php          (تسجيل، دخول، خروج، تحديث بيانات)
-├── OfferController.php          (عرض وتفاصيل العروض)
-├── PurchaseController.php       (شراء وتأكيد الدفع)
-└── BuyerController.php          (لوحة التحكم والبيانات)
+├── AuthController.php          (Register, login, logout, profile update)
+├── OfferController.php          (Display and view offer details)
+├── PurchaseController.php       (Purchase and payment confirmation)
+└── BuyerController.php          (Dashboard and buyer data)
 ```
 
 ### Resources
 ```
 app/Http/Resources/
-├── OfferResource.php           (تنسيق بيانات العروض)
-├── OperationResource.php       (تنسيق بيانات العمليات)
-└── UserResource.php            (تنسيق بيانات المستخدمين)
+├── OfferResource.php           (Format offer data)
+├── OperationResource.php       (Format operation data)
+└── UserResource.php            (Format user data)
 ```
 
 ### Middleware
 ```
 app/Http/Middleware/
-└── SetTenantFromHeader.php     (إدارة Tenant context)
+└── SetTenantFromHeader.php     (Manage tenant context)
 ```
 
 ### Routes
 ```
 routes/
-└── api.php                     (جميع API endpoints)
+└── api.php                     (All API endpoints)
 ```
 
 ### Documentation
 ```
-API_DOCUMENTATION.md            (التوثيق الكامل بالعربية)
+API_DOCUMENTATION.md            (Complete API documentation)
 ```
 
 ---
 
-## خطوات التفعيل
+## Setup Steps
 
-### 1. تحديث النماذج
-تم إضافة `HasApiTokens` trait لـ:
+### 1. Update Models
+`HasApiTokens` trait has been added to:
 - `app/Models/TenantUser.php`
 - `app/Models/User.php`
 
-### 2. إنشاء جداول Sanctum
+### 2. Create Sanctum Tables
 ```bash
 php artisan migrate
 ```
 
-هذا سينشئ جدول `personal_access_tokens` في قاعدة البيانات.
+This will create the `personal_access_tokens` table in the database.
 
-### 3. تأكد من وجود Sanctum في config/app.php
+### 3. Make sure Sanctum is in config/app.php
 ```php
 'providers' => [
     // ...
@@ -66,12 +66,12 @@ php artisan migrate
 ],
 ```
 
-### 4. نشر ملفات Sanctum (اختياري)
+### 4. Publish Sanctum Files (Optional)
 ```bash
 php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
 ```
 
-### 5. مسح الـ Cache
+### 5. Clear Cache
 ```bash
 php artisan config:clear
 php artisan cache:clear
@@ -80,14 +80,14 @@ php artisan route:clear
 
 ---
 
-## اختبار الـ API
+## Testing the API
 
 ### 1. Health Check
 ```bash
 curl https://your-domain.com/api/health
 ```
 
-### 2. تسجيل مستخدم جديد
+### 2. Register New User
 ```bash
 curl -X POST https://your-domain.com/api/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -100,7 +100,7 @@ curl -X POST https://your-domain.com/api/v1/auth/register \
   }'
 ```
 
-### 3. تسجيل الدخول
+### 3. Login
 ```bash
 curl -X POST https://your-domain.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -113,13 +113,13 @@ curl -X POST https://your-domain.com/api/v1/auth/login \
 
 Save the `token` from the response.
 
-### 4. الحصول على العروض
+### 4. Get Offers
 ```bash
 curl -X GET "https://your-domain.com/api/v1/offers?tenant_domain=your-tenant-domain.com" \
   -H "Accept: application/json"
 ```
 
-### 5. شراء أسهم (يتطلب Token)
+### 5. Purchase Shares (Requires Token)
 ```bash
 curl -X POST https://your-domain.com/api/v1/purchase \
   -H "Content-Type: application/json" \
@@ -134,10 +134,10 @@ curl -X POST https://your-domain.com/api/v1/purchase \
 
 ---
 
-## البيئة والإعدادات
+## Environment and Settings
 
-### Config في .env
-تأكد من وجود:
+### Config in .env
+Make sure you have:
 ```env
 SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,your-domain.com
 ```
@@ -153,87 +153,99 @@ Production:  https://your-domain.com/api/
 
 ---
 
-## الحماية والأمان
+## Security and Protection
 
-1. **CORS**: تأكد من إعداد CORS بشكل صحيح في `config/cors.php`
-2. **Rate Limiting**: Laravel يطبق rate limiting افتراضياً (60 requests/minute)
-3. **Validation**: جميع الـ inputs تمر بـ validation صارم
-4. **Database Transactions**: العمليات المالية تستخدم transactions
-5. **Token Security**: استخدم HTTPS في الإنتاج لحماية الـ tokens
+1. **CORS**: Make sure CORS is properly configured in `config/cors.php`
+2. **Rate Limiting**: Laravel applies rate limiting by default (60 requests/minute)
+3. **Validation**: All inputs go through strict validation
+4. **Database Transactions**: Financial operations use transactions
+5. **Token Security**: Use HTTPS in production to protect tokens
 
 ---
 
-## Endpoints المتاحة
+## Available Endpoints
 
 ### Authentication
-- POST `/api/v1/auth/register` - التسجيل
-- POST `/api/v1/auth/login` - الدخول
-- POST `/api/v1/auth/logout` - الخروج ✓
-- GET `/api/v1/auth/profile` - البيانات ✓
-- PUT `/api/v1/auth/profile` - التحديث ✓
+**Buyers (no tenant required):**
+- POST `/api/v1/auth/register` - Register Buyer
+- POST `/api/v1/auth/login` - Login Buyer
+
+**Tenant Admins (tenant required):**
+- POST `/api/v1/auth/tenant-register` - Register Admin
+- POST `/api/v1/auth/tenant-login` - Login Admin
+
+**Common:**
+- POST `/api/v1/auth/logout` - Logout ✓
+- GET `/api/v1/auth/profile` - Get Profile ✓
+- PUT `/api/v1/auth/profile` - Update Profile ✓
 
 ### Offers
-- GET `/api/v1/offers` - قائمة العروض
-- GET `/api/v1/offers/{id}` - تفاصيل عرض
-- GET `/api/v1/offers/meta/cities` - المدن
-- GET `/api/v1/offers/meta/statistics` - الإحصائيات
+- GET `/api/v1/offers` - List Offers
+- GET `/api/v1/offers/{id}` - Offer Details
+- GET `/api/v1/offers/meta/cities` - Cities List
+- GET `/api/v1/offers/meta/statistics` - Statistics
 
-### Purchase
-- POST `/api/v1/purchase` - شراء ✓
-- POST `/api/v1/purchase/confirm-payment` - تأكيد الدفع ✓
-- POST `/api/v1/purchase/{id}/cancel` - إلغاء ✓
+### Offer Management (Tenant Admins Only)
+- POST `/api/v1/offers` - Create Offer ✓
+- PUT `/api/v1/offers/{id}` - Update Offer ✓
+- DELETE `/api/v1/offers/{id}` - Delete Offer ✓
 
-### Buyer
-- GET `/api/v1/buyer/dashboard` - لوحة التحكم ✓
-- GET `/api/v1/buyer/operations` - العمليات ✓
-- GET `/api/v1/buyer/operations/{id}` - تفاصيل عملية ✓
-- GET `/api/v1/buyer/my-shares` - أسهمي ✓
+### Purchase (Buyers Only)
+- POST `/api/v1/purchase` - Purchase ✓
+- POST `/api/v1/purchase/confirm-payment` - Confirm Payment ✓
+- POST `/api/v1/purchase/{id}/cancel` - Cancel ✓
 
-✓ = يتطلب Authentication
+### Buyer Dashboard
+- GET `/api/v1/buyer/dashboard` - Dashboard ✓
+- GET `/api/v1/buyer/operations` - Operations ✓
+- GET `/api/v1/buyer/operations/{id}` - Operation Details ✓
+- GET `/api/v1/buyer/my-shares` - My Shares ✓
 
----
-
-## التوثيق الكامل
-
-راجع ملف `API_DOCUMENTATION.md` للحصول على:
-- تفاصيل كاملة لكل endpoint
-- أمثلة Request/Response
-- أكواد الحالة
-- معالجة الأخطاء
-- أمثلة cURL
+✓ = Requires Authentication
 
 ---
 
-## الدعم الفني
+## Complete Documentation
 
-للمزيد من المساعدة:
-1. راجع التوثيق الكامل في `API_DOCUMENTATION.md`
-2. تحقق من الـ logs في `storage/logs/laravel.log`
-3. استخدم `php artisan route:list` لرؤية جميع الـ routes
-
----
-
-## ملاحظات مهمة
-
-1. **لا تؤثر على الموقع**: جميع الـ API routes تحت `/api/` ومنفصلة تماماً
-2. **Multi-Tenant**: كل طلب يجب أن يحدد `tenant_domain`
-3. **Database Connections**: يتم الانتقال التلقائي بين Central و Tenant databases
-4. **Testing**: اختبر على بيئة development قبل الإنتاج
-5. **Security**: استخدم HTTPS في الإنتاج دائماً
+Refer to `API_DOCUMENTATION.md` file for:
+- Complete details for each endpoint
+- Request/Response examples
+- Status codes
+- Error handling
+- cURL examples
 
 ---
 
-## الخطوات التالية
+## Technical Support
 
-1. ✅ تفعيل Sanctum migrations
-2. ✅ اختبار التسجيل وتسجيل الدخول
-3. ✅ اختبار عرض العروض
-4. ✅ اختبار عملية الشراء
-5. ⏭️ دمج مع تطبيق الموبايل
-6. ⏭️ إعداد Payment Gateway الفعلي
-7. ⏭️ إضافة Notifications (Push/Email)
-8. ⏭️ إضافة Analytics و Reporting
+For more help:
+1. Review the complete documentation in `API_DOCUMENTATION.md`
+2. Check logs in `storage/logs/laravel.log`
+3. Use `php artisan route:list` to see all routes
 
 ---
 
-تم إنشاء هذا النظام بعناية ليكون آمناً، قابلاً للتوسع، وسهل الاستخدام لمطوري تطبيقات الموبايل.
+## Important Notes
+
+1. **Does not affect the website**: All API routes are under `/api/` and completely separate
+2. **Multi-Tenant**: Each request must specify `tenant_domain`
+3. **Database Connections**: Automatic switching between Central and Tenant databases
+4. **Testing**: Test on development environment before production
+5. **Security**: Always use HTTPS in production
+
+---
+
+## Next Steps
+
+1. ✅ Enable Sanctum migrations
+2. ✅ Test registration and login
+3. ✅ Test displaying offers
+4. ✅ Test purchase process
+5. ⏭️ Integrate with mobile application
+6. ⏭️ Setup actual Payment Gateway
+7. ⏭️ Add Notifications (Push/Email)
+8. ⏭️ Add Analytics and Reporting
+
+---
+
+This system has been carefully created to be secure, scalable, and easy to use for mobile app developers.

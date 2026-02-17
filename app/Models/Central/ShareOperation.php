@@ -15,4 +15,20 @@ class ShareOperation extends Model
     protected $casts = [
         'metadata' => 'array',
     ];
+
+    /**
+     * العلاقة مع المشتري
+     */
+    public function buyer()
+    {
+        return $this->belongsTo(Buyer::class, 'buyer_id');
+    }
+
+    /**
+     * العلاقة مع العرض
+     */
+    public function offer()
+    {
+        return $this->belongsTo(ShareOffer::class, 'offer_id');
+    }
 }

@@ -40,8 +40,15 @@ class TenantShareOfferController extends Controller
             'price_per_share' => ['required','numeric','min:0'],
             // currency لم يعد مطلوبًا
             'status' => ['nullable','in:draft,active,paused,completed,cancelled'],
-            'images' => ['nullable','array','max:15'],
-            'images.*' => ['image','mimes:jpg,jpeg,png,webp','max:5120'],
+            'images' => ['required','array','min:1','max:15'],
+            'images.*' => ['required','image','mimes:jpg,jpeg,png,webp','max:5120'],
+        ], [
+            'images.required' => 'يجب إضافة صورة واحدة على الأقل للعرض',
+            'images.min' => 'يجب إضافة صورة واحدة على الأقل للعرض',
+            'images.*.required' => 'يجب أن يكون الملف صورة صالحة',
+            'images.*.image' => 'يجب أن يكون الملف صورة',
+            'images.*.mimes' => 'صيغة الصورة يجب أن تكون: jpg, jpeg, png, webp',
+            'images.*.max' => 'حجم الصورة يجب أن لا يتجاوز 5 ميجابايت',
         ]);
 
         $data['sold_shares'] = $data['sold_shares'] ?? 0;
@@ -272,9 +279,69 @@ class TenantShareOfferController extends Controller
     public function destroy(string $subdomain, int $share)
     {
         $model = TenantShareOffer::on('tenant')->findOrFail($share);
-        $model->delete();
-        return redirect()->route('tenant.subdomain.shares.index', ['subdomain' => $subdomain])
-            ->with('status', __('تم حذف العرض (لن يُحذف من المركزية تلقائيًا)'));
+        
+        try {
+            DB::beginTransaction();
+            
+            // Find central offer using the link stored in tenant
+            if ($model->central_offer_id) {
+                $centralOffer = CentralShareOffer::on('central')->find($model->central_offer_id);
+                
+                if ($centralOffer) {
+                    // Check if there are active secondary market offers
+                    $hasActiveSales = DB::connection('central')
+                        ->table('buyer_sale_offers')
+                        ->where('original_offer_id', $centralOffer->id)
+                        ->where('status', 'active')
+                        ->exists();
+                    
+                    if ($hasActiveSales) {
+                        DB::rollBack();
+                        return back()->withErrors([
+                            'error' => 'لا يمكن حذف هذا العرض لأنه يحتوي على عروض بيع نشطة في السوق الثانوي. يرجى إلغاء جميع العروض أولاً.'
+                        ]);
+                    }
+                    
+                    // Check if there are any buyer holdings
+                    $hasBuyerHoldings = DB::connection('central')
+                        ->table('buyer_holdings')
+                        ->where('offer_id', $centralOffer->id)
+                        ->where('shares_count', '>', 0)
+                        ->exists();
+                    
+                    if ($hasBuyerHoldings) {
+                        // Instead of deleting, mark as cancelled
+                        $centralOffer->status = 'cancelled';
+                        $centralOffer->save();
+                        \Log::info('Central offer marked as cancelled due to buyer holdings', ['central_offer_id' => $centralOffer->id]);
+                    } else {
+                        // Safe to delete
+                        $centralOffer->delete();
+                        \Log::info('Central offer deleted', ['central_offer_id' => $centralOffer->id]);
+                    }
+                }
+            }
+            
+            // Delete from tenant
+            $model->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('tenant.subdomain.shares.index', ['subdomain' => $subdomain])
+                ->with('status', __('تم حذف العرض من كل من قاعدة البيانات الفرعية والمركزية'));
+                
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete tenant share offer', [
+                'error' => $e->getMessage(),
+                'tenant_offer_id' => $share,
+                'subdomain' => $subdomain
+            ]);
+            
+            return back()->withErrors([
+                'error' => __('تعذر حذف العرض: :msg', ['msg' => $e->getMessage()])
+            ]);
+        }
     }
 
     /**
@@ -287,6 +354,15 @@ class TenantShareOfferController extends Controller
         $image = $request->input('image');
 
         $media = is_array($offer->media) ? $offer->media : [];
+        
+        // منع حذف آخر صورة - يجب أن يبقى صورة واحدة على الأقل
+        if (count($media) <= 1) {
+            return response()->json([
+                'ok' => false, 
+                'error' => 'لا يمكن حذف جميع الصور. يجب أن يبقى صورة واحدة على الأقل للعرض'
+            ], 422);
+        }
+        
         $media = array_values(array_filter($media, function ($m) use ($image) {
             return $m !== $image;
         }));
