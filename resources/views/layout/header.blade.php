@@ -66,16 +66,25 @@
                         </a>
                     </li>
                 @endif
-            @else
-                {{-- رابط السوق الثانوي متاح للجميع على الصفحة الرئيسية --}}
-                @if (!$isAdminRoute)
-                    <li class="nav-item d-none d-md-flex">
-                        <a href="{{ route('buyer.secondary-market.index') }}"
-                            class="nav-link {{ \Illuminate\Support\Str::startsWith($currentName, 'buyer.secondary-market') ? 'active' : '' }}">
-                            <i class="mdi mdi-shopping"></i> السوق الثانوي
-                        </a>
-                    </li>
-                @endif
+            @endif
+
+            {{-- رابط الدليل الشامل متاح للجميع --}}
+            @if (!$isAdminRoute)
+                <li class="nav-item">
+                    <a href="{{ route('guide') }}" class="nav-link {{ $currentName === 'guide' ? 'active' : '' }}">
+                        <i class="mdi mdi-book-open-variant"></i> <span class="menu-title">{{ __('الدليل الشامل') }}</span>
+                    </a>
+                </li>
+            @endif
+
+            {{-- رابط السوق الثانوي متاح للجميع --}}
+            @if (!$isAdminRoute && !$tenantReady)
+                <li class="nav-item">
+                    <a href="{{ route('buyer.secondary-market.index') }}"
+                        class="nav-link {{ \Illuminate\Support\Str::startsWith($currentName, 'buyer.secondary-market') ? 'active' : '' }}">
+                        <i class="mdi mdi-shopping"></i> <span class="menu-title">{{ __('السوق الثانوي') }}</span>
+                    </a>
+                </li>
             @endif
         </ul>
         <ul class="navbar-nav navbar-nav-right">
@@ -121,7 +130,7 @@
                     data-upcoming-count="{{ $upcomingCount }}">
                     <a class="nav-link count-indicator dropdown-toggle" id="adminComplaintsDropdown" href="#"
                         data-toggle="dropdown">
-                        <i class="mdi mdi-bell-outline"></i>
+                        <i class="mdi mdi-message-alert-outline"></i>
                         <span class="count bg-danger {{ $upcomingCount > 0 ? '' : 'd-none' }}"
                             id="admin-complaints-count">
                             {{ $upcomingCount > 0 ? $upcomingCount : 0 }}
@@ -173,21 +182,22 @@
                         @endif
                     </div>
                 </li>
-                <li class="nav-item dropdown" id="admin-market-notifications"
-                    data-feed-url="{{ route('admin.market.alerts.feed') }}">
-                    <a class="nav-link count-indicator dropdown-toggle" id="adminMarketDropdown" href="#"
-                        data-toggle="dropdown">
+                {{-- تنبيهات موحدة (موافقات العروض + تنبيهات السوق) --}}
+                <li class="nav-item dropdown" id="admin-all-notifications"
+                    data-feed-url="{{ route('admin.notifications.all-unread') }}">
+                    <a class="nav-link count-indicator dropdown-toggle" id="adminAllNotificationsDropdown"
+                        href="#" data-toggle="dropdown">
                         <i class="mdi mdi-bell-outline"></i>
-                        <span class="count bg-danger d-none" id="admin-market-count">0</span>
+                        <span class="count bg-danger d-none" id="admin-all-notifications-count">0</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list pb-0"
-                        aria-labelledby="adminMarketDropdown">
+                        aria-labelledby="adminAllNotificationsDropdown">
                         <div class="dropdown-item py-3 border-bottom d-flex justify-content-between align-items-center">
-                            <p class="mb-0 font-weight-medium">{{ __('تنبيهات السوق') }}</p>
-                            <a href="{{ route('admin.market.alerts') }}"
+                            <p class="mb-0 font-weight-medium">التنبيهات</p>
+                            <a href="{{ route('admin.notifications.index') }}"
                                 class="badge badge-pill badge-primary">{{ __('عرض الكل') }}</a>
                         </div>
-                        <div id="admin-market-list">
+                        <div id="admin-all-notifications-list">
                             <p class="text-muted small px-3 py-2 mb-0">{{ __('لا توجد تنبيهات') }}</p>
                         </div>
                     </div>
@@ -377,7 +387,8 @@
                                 );
 
                                 html += '<a href="' + item.show_url +
-                                    '" class="dropdown-item preview-item py-3">' +
+                                    '" class="dropdown-item preview-item py-3" data-complaint-id="' + item
+                                    .id + '">' +
                                     '<div class="preview-thumbnail"><i class="mdi mdi-alert-circle-outline m-auto text-primary"></i></div>' +
                                     '<div class="preview-item-content">' +
                                     '<h6 class="preview-subject font-weight-normal text-dark mb-1">' + (item
@@ -390,6 +401,34 @@
                             });
 
                             list.innerHTML = html;
+
+                            // إضافة event listener لوضع علامة "مشاهدة" عند النقر
+                            document.querySelectorAll('#admin-complaints-list a[data-complaint-id]').forEach(
+                                function(link) {
+                                    link.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        var complaintId = this.getAttribute('data-complaint-id');
+                                        var targetUrl = this.getAttribute('href');
+
+                                        if (complaintId && window.axios) {
+                                            var markSeenUrl =
+                                                '{{ route('admin.complaints.mark-seen', ['complaint' => '__ID__']) }}'
+                                                .replace('__ID__', complaintId);
+
+                                            axios.post(markSeenUrl)
+                                                .then(function() {
+                                                    window.location.href = targetUrl;
+                                                })
+                                                .catch(function(err) {
+                                                    console.error(
+                                                        'Failed to mark complaint as seen', err);
+                                                    window.location.href = targetUrl;
+                                                });
+                                        } else {
+                                            window.location.href = targetUrl;
+                                        }
+                                    });
+                                });
                         }
                     } catch (e) {
                         console.error('Failed to refresh admin complaints notifications', e);
@@ -404,24 +443,23 @@
     @push('custom-scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                var container = document.getElementById('admin-market-notifications');
+                var container = document.getElementById('admin-all-notifications');
                 if (!container || !window.axios) return;
 
                 var feedUrl = container.getAttribute('data-feed-url');
-                var badge = document.getElementById('admin-market-count');
-                var list = document.getElementById('admin-market-list');
+                var badge = document.getElementById('admin-all-notifications-count');
+                var list = document.getElementById('admin-all-notifications-list');
 
-                async function refreshAdminMarket() {
+                async function refreshAdminNotifications() {
                     try {
                         var response = await window.axios.get(feedUrl);
                         var data = response.data || {};
                         var items = data.items || [];
-                        var counts = data.counts || {};
-                        var recent = counts.recent || 0;
+                        var count = data.count || 0;
 
                         if (badge) {
-                            if (recent > 0) {
-                                badge.textContent = recent;
+                            if (count > 0) {
+                                badge.textContent = count;
                                 badge.classList.remove('d-none');
                             } else {
                                 badge.classList.add('d-none');
@@ -431,35 +469,78 @@
                         if (list) {
                             if (!items.length) {
                                 list.innerHTML =
-                                    '<p class="text-muted small px-3 py-2 mb-0">{{ __('لا توجد تنبيهات') }}</p>';
+                                    '<p class="text-muted small px-3 py-2 mb-0">لا توجد تنبيهات</p>';
                                 return;
                             }
 
                             var html = '';
-                            items.slice(0, 5).forEach(function(item) {
+                            items.forEach(function(item) {
+                                var iconClass = item.icon || 'mdi-bell-outline';
+                                var iconColor = item.color || 'primary';
+                                var dataAttr = item.type === 'alert' ? 'data-alert-id' :
+                                    'data-notification-id';
+
                                 html += '<a href="' + item.link +
-                                    '" class="dropdown-item preview-item py-3">' +
-                                    '<div class="preview-thumbnail"><i class="mdi mdi-bell-ring-outline m-auto text-primary"></i></div>' +
+                                    '" class="dropdown-item preview-item py-3" ' + dataAttr + '="' + item
+                                    .id + '" data-type="' + item.type + '">' +
+                                    '<div class="preview-thumbnail"><i class="mdi ' + iconClass +
+                                    ' m-auto text-' + iconColor + '"></i></div>' +
                                     '<div class="preview-item-content">' +
                                     '<h6 class="preview-subject font-weight-normal text-dark mb-1">' + (item
                                         .title || '') + '</h6>' +
                                     '<p class="font-weight-light small-text mb-0">' + (item.message || '') +
                                     '</p>' +
-                                    '<p class="font-weight-light small-text mb-0 mt-1">' + (item
-                                        .created_at || '') + '</p>' +
+                                    '<p class="font-weight-light small-text mb-0 mt-1 text-muted">' + (item
+                                        .time_ago || '') + '</p>' +
                                     '</div>' +
                                     '</a>';
                             });
 
                             list.innerHTML = html;
+
+                            // إضافة event listeners للتعامل مع كلا النوعين
+                            document.querySelectorAll('#admin-all-notifications-list a').forEach(function(link) {
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    var targetUrl = this.getAttribute('href');
+                                    var itemType = this.getAttribute('data-type');
+                                    var itemId = this.getAttribute(itemType === 'alert' ?
+                                        'data-alert-id' : 'data-notification-id');
+
+                                    if (itemId && window.axios) {
+                                        var markReadUrl;
+                                        if (itemType === 'alert') {
+                                            markReadUrl =
+                                                '{{ route('admin.market.alerts.mark-read', ['id' => '__ID__']) }}'
+                                                .replace('__ID__', itemId);
+                                        } else {
+                                            markReadUrl =
+                                                '{{ route('admin.notifications.read', ['id' => '__ID__']) }}'
+                                                .replace('__ID__', itemId);
+                                        }
+
+                                        axios.post(markReadUrl)
+                                            .then(function() {
+                                                window.location.href = targetUrl;
+                                            })
+                                            .catch(function(err) {
+                                                console.error('Failed to mark item as read',
+                                                    err);
+                                                window.location.href = targetUrl;
+                                            });
+                                    } else {
+                                        window.location.href = targetUrl;
+                                    }
+                                });
+                            });
                         }
                     } catch (e) {
-                        console.error('Failed to refresh admin market notifications', e);
+                        console.error('Failed to refresh admin notifications', e);
                     }
                 }
 
-                refreshAdminMarket();
-                setInterval(refreshAdminMarket, 15000);
+                refreshAdminNotifications();
+                setInterval(refreshAdminNotifications, 15000);
             });
         </script>
     @endpush

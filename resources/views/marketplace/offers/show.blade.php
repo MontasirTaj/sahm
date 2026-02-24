@@ -331,6 +331,39 @@
                 transform: scale(1.1);
                 opacity: 1;
             }
+
+            /* PDF Section Styling */
+            .btn-outline-danger {
+                border: 2px solid #dc3545;
+                color: #dc3545;
+                background: white;
+                transition: all 0.3s ease;
+            }
+
+            .btn-outline-danger:hover {
+                background: #dc3545;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+            }
+
+            .btn-danger {
+                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+                border: none;
+                transition: all 0.3s ease;
+            }
+
+            .btn-danger:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
+            }
+
+            .btn-lg {
+                padding: 12px 24px;
+                font-size: 1.05rem;
+                font-weight: 600;
+                border-radius: 12px;
+            }
         </style>
     @endpush
 
@@ -422,6 +455,39 @@
                         </li>
                     </ul>
                 </div>
+
+                <!-- Real Estate Review PDF -->
+                @if ($offer->approval_status === 'real_estate_approved' && $offer->realEstateCheckpoints->isNotEmpty())
+                    <div class="details-card fade-in mt-4">
+                        <h3>
+                            <i class="mdi mdi-file-pdf-box text-danger me-2"></i>
+                            تقرير المراجعة العقارية
+                        </h3>
+                        <p class="text-muted mb-3">
+                            تقرير شامل يحتوي على نقاط المراجعة العقارية المعتمدة لهذا العرض
+                        </p>
+
+                        <div class="d-flex gap-3 flex-wrap">
+                            <a href="{{ route('marketplace.offers.pdf', $offer->id) }}" target="_blank"
+                                class="btn btn-outline-danger btn-lg">
+                                <i class="mdi mdi-file-eye me-2"></i>
+                                فتح التقرير
+                            </a>
+                            <a href="{{ route('marketplace.offers.pdf', $offer->id) }}?download=1"
+                                class="btn btn-danger btn-lg">
+                                <i class="mdi mdi-download me-2"></i>
+                                تحميل التقرير
+                            </a>
+                        </div>
+
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="mdi mdi-information-outline me-1"></i>
+                                يحتوي التقرير على {{ $offer->realEstateCheckpoints->count() }} نقطة من نقاط المراجعة
+                            </small>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             @php($isLoggedIn = \Illuminate\Support\Facades\Auth::guard('web')->check())

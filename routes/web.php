@@ -81,6 +81,10 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
             // Static marketing pages
             Route::view('faq', 'static.faq')->name('static.faq');
             Route::view('about', 'static.about')->name('static.about');
+            
+            // دليل شامل لكيفية عمل المنصة
+            Route::get('guide', [\App\Http\Controllers\GuideController::class, 'index'])->name('guide');
+            Route::get('guide/download-pdf', [\App\Http\Controllers\GuideController::class, 'downloadPdf'])->name('guide.pdf');
 
             // Plans & Signup
             Route::get('plans', [TenantSignupController::class, 'plans'])
@@ -130,6 +134,8 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
                     ->name('complaints.reply');
                 Route::get('complaints-feed', [AdminComplaintController::class, 'feed'])
                     ->name('complaints.feed');
+                Route::post('complaints/{complaint}/mark-seen', [AdminComplaintController::class, 'markComplaintAsSeen'])
+                    ->name('complaints.mark-seen');
 
                 // Reports (overview disabled for now)
                 // Route::get('reports/overview', [AdminReportController::class, 'overview'])
@@ -205,9 +211,56 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
                 Route::get('market/buyers', [AdminMarketController::class, 'buyers'])->name('market.buyers');
                 Route::get('market/alerts', [AdminMarketController::class, 'alerts'])->name('market.alerts');
                 Route::get('market/alerts-feed', [AdminMarketController::class, 'alertsFeed'])->name('market.alerts.feed');
+                Route::post('market/alerts/{id}/mark-read', [AdminMarketController::class, 'markAlertAsRead'])->name('market.alerts.mark-read');
 
                 // Cities Management
                 Route::resource('cities', \App\Http\Controllers\Admin\CityController::class);
+
+                // Property Types Management
+                Route::resource('property-types', \App\Http\Controllers\Admin\PropertyTypeController::class);
+
+                // Offer Approval Workflow
+                Route::prefix('offer-approval')->as('offer-approval.')->group(function () {
+                    // Dashboard
+                    Route::get('dashboard', [\App\Http\Controllers\Admin\OfferApprovalDashboardController::class, 'index'])
+                        ->name('dashboard');
+                    Route::get('list/{status}', [\App\Http\Controllers\Admin\OfferApprovalDashboardController::class, 'listByStatus'])
+                        ->name('list');
+
+                    // Initial Review
+                    Route::get('{id}/review', [\App\Http\Controllers\Admin\OfferApprovalController::class, 'show'])
+                        ->name('show');
+                    Route::post('{id}/approve', [\App\Http\Controllers\Admin\OfferApprovalController::class, 'approve'])
+                        ->name('approve');
+                    Route::post('{id}/reject', [\App\Http\Controllers\Admin\OfferApprovalController::class, 'reject'])
+                        ->name('reject');
+
+                    // Real Estate Review
+                    Route::get('{id}/real-estate', [\App\Http\Controllers\Admin\RealEstateReviewController::class, 'show'])
+                        ->name('real-estate.show');
+                    Route::post('{id}/checkpoints', [\App\Http\Controllers\Admin\RealEstateReviewController::class, 'saveCheckpoints'])
+                        ->name('real-estate.checkpoints');
+                    Route::post('{id}/real-estate/approve', [\App\Http\Controllers\Admin\RealEstateReviewController::class, 'approve'])
+                        ->name('real-estate.approve');
+                    Route::post('{id}/real-estate/reject', [\App\Http\Controllers\Admin\RealEstateReviewController::class, 'reject'])
+                        ->name('real-estate.reject');
+                });
+
+                // Admin Notifications
+                Route::prefix('notifications')->as('notifications.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'index'])
+                        ->name('index');
+                    Route::get('unread', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'unread'])
+                        ->name('unread');
+                    Route::get('all-unread', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'allUnread'])
+                        ->name('all-unread');
+                    Route::post('{id}/read', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'markAsRead'])
+                        ->name('read');
+                    Route::post('read-all', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'markAllAsRead'])
+                        ->name('read-all');
+                    Route::delete('{id}', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'destroy'])
+                        ->name('destroy');
+                });
             });
         });
 
@@ -550,6 +603,7 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
             Route::get('offers/{offer}', [MarketplaceController::class, 'show'])->name('marketplace.offers.show');
             Route::post('offers/{offer}/buy', [MarketplaceController::class, 'buy'])->name('marketplace.offers.buy');
             Route::get('offers/{offer}/availability', [MarketplaceController::class, 'availability'])->name('marketplace.offers.availability');
+            Route::get('offers/{offer}/pdf', [MarketplaceController::class, 'generatePdf'])->name('marketplace.offers.pdf');
 
             // Marketplace auth (buyers on central DB)
             Route::get('login', [\App\Http\Controllers\MarketplaceAuthController::class, 'showLoginForm'])->name('marketplace.login');
@@ -557,6 +611,10 @@ Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
             Route::get('register', [\App\Http\Controllers\MarketplaceAuthController::class, 'showRegisterForm'])->name('marketplace.register');
             Route::post('register', [\App\Http\Controllers\MarketplaceAuthController::class, 'register'])->name('marketplace.register.post');
             Route::post('logout', [\App\Http\Controllers\MarketplaceAuthController::class, 'logout'])->name('marketplace.logout');
+            
+            // Google OAuth
+            Route::get('auth/google', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'redirectToGoogle'])->name('auth.google');
+            Route::get('auth/google/callback', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
             // السوق الثانوي - متاح للزوار (عرض فقط)
             Route::prefix('buyer/secondary-market')->as('buyer.secondary-market.')->group(function(){

@@ -594,6 +594,27 @@
                 .di-testimonials-btn:hover {
                     filter: brightness(1.05);
                 }
+
+                /* Mobile App Section Animations */
+                @keyframes float {
+                    0%, 100% {
+                        transform: translateY(0);
+                    }
+                    50% {
+                        transform: translateY(-20px);
+                    }
+                }
+
+                @keyframes pulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                    }
+                    50% {
+                        transform: scale(1.05);
+                        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+                    }
+                }
             </style>
         @endpush
 
@@ -1002,6 +1023,145 @@
                                             <span class="muted">{{ __('CISO, Financial Services') }}</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mobile App Download Section -->
+        <section class="py-5">
+            <div class="container">
+                <div class="row align-items-center" style="background: linear-gradient(135deg, #1A5F3F 0%, #2D7A56 100%); border-radius: 30px; padding: 60px 40px; box-shadow: 0 20px 60px rgba(26, 95, 63, 0.3); position: relative; overflow: hidden;">
+                    <!-- Decorative Background Elements -->
+                    <div style="position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%); border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+                    
+                    <!-- Content Column -->
+                    <div class="col-lg-7 mb-4 mb-lg-0" style="position: relative; z-index: 2;">
+                        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
+                            <div style="background: rgba(212, 175, 55, 0.2); border-radius: 20px; padding: 15px; border: 2px solid rgba(212, 175, 55, 0.4);">
+                                <i class="mdi mdi-cellphone-check" style="font-size: 3rem; color: #D4AF37;"></i>
+                            </div>
+                            <div>
+                                <h2 style="color: white; margin: 0; font-size: 2.2rem; font-weight: 800;">
+                                    {{ __('حمّل تطبيق سهمي') }}
+                                </h2>
+                                <p style="color: rgba(255, 255, 255, 0.9); margin: 5px 0 0 0; font-size: 1.1rem;">
+                                    {{ __('استثمر في العقار أينما كنت') }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <p style="color: rgba(255, 255, 255, 0.95); font-size: 1.05rem; line-height: 1.8; margin-bottom: 30px;">
+                            {{ __('تصفح الفرص الاستثمارية، اشترِ الأسهم العقارية، وتتبع أرباحك من راحة هاتفك. تطبيقنا يوفر لك تجربة سلسة وآمنة للاستثمار في أي وقت وأي مكان.') }}
+                        </p>
+                        
+                        <!-- Features List -->
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="mdi mdi-shield-check" style="font-size: 1.5rem; color: #D4AF37;"></i>
+                                    <span style="color: white; font-size: 0.95rem;">{{ __('آمن ومشفّر بالكامل') }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="mdi mdi-clock-fast" style="font-size: 1.5rem; color: #D4AF37;"></i>
+                                    <span style="color: white; font-size: 0.95rem;">{{ __('معاملات فورية') }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="mdi mdi-bell-ring" style="font-size: 1.5rem; color: #D4AF37;"></i>
+                                    <span style="color: white; font-size: 0.95rem;">{{ __('إشعارات فورية للفرص الجديدة') }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="mdi mdi-chart-line" style="font-size: 1.5rem; color: #D4AF37;"></i>
+                                    <span style="color: white; font-size: 0.95rem;">{{ __('تتبع أرباحك لحظياً') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Download Buttons -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <a href="#" style="display: inline-flex; align-items: center; gap: 12px; background: white; color: #1A5F3F; padding: 15px 30px; border-radius: 15px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 30px rgba(0, 0, 0, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 20px rgba(0, 0, 0, 0.2)'">
+                                <i class="mdi mdi-apple" style="font-size: 2rem;"></i>
+                                <div style="text-align: right;">
+                                    <small style="display: block; font-size: 0.7rem; opacity: 0.7;">{{ __('حمّل من') }}</small>
+                                    <span style="font-size: 1.1rem;">App Store</span>
+                                </div>
+                            </a>
+                            
+                            <a href="#" style="display: inline-flex; align-items: center; gap: 12px; background: white; color: #1A5F3F; padding: 15px 30px; border-radius: 15px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 30px rgba(0, 0, 0, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 20px rgba(0, 0, 0, 0.2)'">
+                                <i class="mdi mdi-google-play" style="font-size: 2rem;"></i>
+                                <div style="text-align: right;">
+                                    <small style="display: block; font-size: 0.7rem; opacity: 0.7;">{{ __('حمّل من') }}</small>
+                                    <span style="font-size: 1.1rem;">Google Play</span>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 30px; margin-top: 35px; padding-top: 30px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                            <div>
+                                <h3 style="color: #D4AF37; margin: 0; font-size: 2rem; font-weight: 800;">10K+</h3>
+                                <small style="color: rgba(255, 255, 255, 0.8);">{{ __('تحميل للتطبيق') }}</small>
+                            </div>
+                            <div>
+                                <h3 style="color: #D4AF37; margin: 0; font-size: 2rem; font-weight: 800;">4.8</h3>
+                                <small style="color: rgba(255, 255, 255, 0.8);">{{ __('تقييم المستخدمين') }}</small>
+                            </div>
+                            <div>
+                                <h3 style="color: #D4AF37; margin: 0; font-size: 2rem; font-weight: 800;">99.9%</h3>
+                                <small style="color: rgba(255, 255, 255, 0.8);">{{ __('وقت التشغيل') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Phone Mockup Column -->
+                    <div class="col-lg-5" style="position: relative; z-index: 2;">
+                        <div style="text-align: center; animation: float 3s ease-in-out infinite;">
+                            <div style="position: relative; display: inline-block;">
+                                <!-- Phone Frame -->
+                                <div style="width: 280px; height: 560px; background: linear-gradient(180deg, #2D7A56 0%, #1A5F3F 100%); border-radius: 40px; padding: 15px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4); margin: 0 auto;">
+                                    <!-- Screen -->
+                                    <div style="width: 100%; height: 100%; background: white; border-radius: 30px; overflow: hidden; position: relative;">
+                                        <!-- App Screenshot Mockup -->
+                                        <div style="padding: 20px; text-align: center; padding-top: 60px;">
+                                            <i class="mdi mdi-home-city" style="font-size: 4rem; color: #1A5F3F; margin-bottom: 15px;"></i>
+                                            <h4 style="color: #1A5F3F; margin-bottom: 10px; font-size: 1.3rem;">{{ __('سهمي') }}</h4>
+                                            <p style="color: #6c757d; font-size: 0.85rem; margin-bottom: 25px;">{{ __('الاستثمار العقاري الذكي') }}</p>
+                                            
+                                            <!-- Mockup Property Cards -->
+                                            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; padding: 15px; margin-bottom: 12px; text-align: right; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);">
+                                                <small style="color: #1A5F3F; font-weight: 700;">{{ __('برج الرياض التجاري') }}</small><br>
+                                                <small style="color: #D4AF37; font-weight: 600;">{{ __('عائد 9.5%') }}</small>
+                                            </div>
+                                            
+                                            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; padding: 15px; margin-bottom: 12px; text-align: right; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);">
+                                                <small style="color: #1A5F3F; font-weight: 700;">{{ __('مجمع جدة السكني') }}</small><br>
+                                                <small style="color: #D4AF37; font-weight: 600;">{{ __('عائد 8.2%') }}</small>
+                                            </div>
+                                            
+                                            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 15px; padding: 15px; text-align: right; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);">
+                                                <small style="color: #1A5F3F; font-weight: 700;">{{ __('واحة الدمام') }}</small><br>
+                                                <small style="color: #D4AF37; font-weight: 600;">{{ __('عائد 7.8%') }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Floating Elements -->
+                                <div style="position: absolute; top: 20px; right: -30px; background: white; border-radius: 50%; padding: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); animation: pulse 2s ease-in-out infinite;">
+                                    <i class="mdi mdi-chart-line-variant" style="font-size: 1.5rem; color: #1A5F3F;"></i>
+                                </div>
+                                <div style="position: absolute; bottom: 80px; left: -30px; background: white; border-radius: 50%; padding: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); animation: pulse 2s 1s ease-in-out infinite;">
+                                    <i class="mdi mdi-cash-check" style="font-size: 1.5rem; color: #D4AF37;"></i>
                                 </div>
                             </div>
                         </div>

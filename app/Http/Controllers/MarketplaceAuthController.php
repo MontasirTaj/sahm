@@ -10,6 +10,12 @@ class MarketplaceAuthController extends Controller
     public function showLoginForm(Request $request)
     {
         $intended = $request->query('intended');
+        
+        // Clear intended if it's a notification URL
+        if ($intended && str_contains($intended, '/notifications/')) {
+            $intended = null;
+        }
+        
         return view('auth.marketplace-login', compact('intended'));
     }
 
@@ -22,8 +28,14 @@ class MarketplaceAuthController extends Controller
 
         if (Auth::guard('web')->attempt(['email' => $data['email'], 'password' => $data['password']], $request->boolean('remember'))) {
             $request->session()->regenerate();
+            
+            // Only redirect to intended if it's a valid URL and not a notification endpoint
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
+            if ($intended && !str_contains($intended, '/notifications/')) {
+                return redirect()->to($intended);
+            }
+            
+            return redirect()->route('buyer.dashboard');
         }
 
         return back()->withErrors(['email' => __('بيانات الدخول غير صحيحة')])->withInput();
@@ -32,6 +44,12 @@ class MarketplaceAuthController extends Controller
     public function showRegisterForm(Request $request)
     {
         $intended = $request->query('intended');
+        
+        // Clear intended if it's a notification URL
+        if ($intended && str_contains($intended, '/notifications/')) {
+            $intended = null;
+        }
+        
         return view('auth.marketplace-register', compact('intended'));
     }
 
@@ -41,8 +59,6 @@ class MarketplaceAuthController extends Controller
             // Logged-in user: create Buyer profile for current user
             $data = $request->validate([
                 'name' => ['required','string','max:255'],
-                'phone' => ['nullable','string','max:30'],
-                'national_id' => ['nullable','string','max:50'],
             ]);
             $user = Auth::guard('web')->user();
             \App\Models\Central\Buyer::on('central')->updateOrCreate(
@@ -50,21 +66,25 @@ class MarketplaceAuthController extends Controller
                 [
                     'full_name' => $data['name'] ?? $user->name,
                     'email' => $user->email,
-                    'phone' => $data['phone'] ?? null,
-                    'national_id' => $data['national_id'] ?? null,
+                    'phone' => null,
+                    'national_id' => null,
                     'kyc_status' => 'unverified',
                 ]
             );
+            
+            // Only redirect to intended if it's a valid URL and not a notification endpoint
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
+            if ($intended && !str_contains($intended, '/notifications/')) {
+                return redirect()->to($intended);
+            }
+            
+            return redirect()->route('buyer.dashboard');
         } else {
             // New marketplace account: create User and Buyer
             $data = $request->validate([
                 'name' => ['required','string','max:255'],
                 'email' => ['required','email','max:255','unique:central.users,email'],
                 'password' => ['required','confirmed','min:6'],
-                'phone' => ['nullable','string','max:30'],
-                'national_id' => ['nullable','string','max:50'],
             ]);
             $user = \App\Models\User::on('central')->create([
                 'name' => $data['name'],
@@ -75,13 +95,19 @@ class MarketplaceAuthController extends Controller
                 'user_id' => $user->getKey(),
                 'full_name' => $data['name'],
                 'email' => $data['email'],
-                'phone' => $data['phone'] ?? null,
-                'national_id' => $data['national_id'] ?? null,
+                'phone' => null,
+                'national_id' => null,
                 'kyc_status' => 'unverified',
             ]);
             Auth::guard('web')->login($user);
+            
+            // Only redirect to intended if it's a valid URL and not a notification endpoint
             $intended = $request->input('intended');
-            return $intended ? redirect()->to($intended) : redirect()->route('buyer.dashboard');
+            if ($intended && !str_contains($intended, '/notifications/')) {
+                return redirect()->to($intended);
+            }
+            
+            return redirect()->route('buyer.dashboard');
         }
     }
 

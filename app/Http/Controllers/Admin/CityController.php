@@ -13,7 +13,7 @@ class CityController extends Controller
      */
     public function index()
     {
-        $cities = City::orderBy('sort_order')->orderBy('name_ar')->paginate(20);
+        $cities = City::orderBy('sort_order')->orderBy('name_ar')->get();
         return view('admin.cities.index', compact('cities'));
     }
 

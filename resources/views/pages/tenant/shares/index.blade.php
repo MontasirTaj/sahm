@@ -34,6 +34,7 @@
                         <th>{{ __('إجمالي الأسهم') }}</th>
                         <th>{{ __('المتاحة') }}</th>
                         <th>{{ __('الحالة') }}</th>
+                        <th>{{ __('حالة الموافقة') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -45,10 +46,26 @@
                             <td>{{ number_format($o->price_per_share, 2) }} {{ $o->currency }}</td>
                             <td>{{ $o->total_shares }}</td>
                             <td>{{ $o->available_shares }}</td>
-                            <td>{{ $o->status }}</td>
+                            <td>
+                                <span
+                                    class="badge bg-{{ $o->status === 'active' ? 'success' : ($o->status === 'draft' ? 'secondary' : ($o->status === 'paused' ? 'warning' : ($o->status === 'completed' ? 'info' : 'danger'))) }}">
+                                    {{ $o->status_text }}
+                                </span>
+                            </td>
+                            <td style="min-width: 200px;">
+                                @if (isset($o->approval_status))
+                                    <x-offer-approval-progress :status="$o->approval_status" :progress="$o->approval_progress ?? 0" :rejectionNotes="$o->rejection_notes" />
+                                @else
+                                    <span class="badge bg-secondary">غير متزامن</span>
+                                @endif
+                            </td>
                             <td class="text-right">
-                                <a class="btn btn-sm btn-outline-primary tenant-action-btn"
-                                    href="{{ route('tenant.subdomain.shares.edit', ['subdomain' => $subdomain, 'share' => $o->id]) }}">{{ __('تعديل') }}</a>
+                                @if (!isset($o->approval_status) || $o->approval_status !== 'real_estate_approved')
+                                    <a class="btn btn-sm btn-outline-primary tenant-action-btn"
+                                        href="{{ route('tenant.subdomain.shares.edit', ['subdomain' => $subdomain, 'share' => $o->id]) }}">{{ __('تعديل') }}</a>
+                                @else
+                                    <span class="badge bg-success">معتمد نهائياً</span>
+                                @endif
                                 <form method="POST"
                                     action="{{ route('tenant.subdomain.shares.destroy', ['subdomain' => $subdomain, 'share' => $o->id]) }}"
                                     style="display:inline-block">
@@ -61,7 +78,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted">{{ __('لا توجد عروض بعد') }}</td>
+                            <td colspan="8" class="text-center text-muted">{{ __('لا توجد عروض بعد') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -225,6 +225,27 @@
                     </ul>
                 </div>
             </li>
+            <li class="nav-item {{ active_class(['admin.cities.*', 'admin.property-types.*']) }}">
+                <a class="nav-link" data-toggle="collapse" href="#basic-data-menu"
+                    aria-expanded="{{ is_active_route(['admin.cities.*', 'admin.property-types.*']) }}"
+                    aria-controls="basic-data-menu">
+                    <i class="menu-icon mdi mdi-database"></i>
+                    <span class="menu-title">{{ __('البيانات الأساسية') }}</span>
+                    <i class="menu-arrow"></i>
+                </a>
+                <div class="collapse {{ show_class(['admin.cities.*', 'admin.property-types.*']) }}"
+                    id="basic-data-menu">
+                    <ul class="nav flex-column sub-menu">
+                        <li class="nav-item {{ active_class(['admin.cities.*']) }}">
+                            <a class="nav-link" href="{{ route('admin.cities.index') }}">{{ __('المدن') }}</a>
+                        </li>
+                        <li class="nav-item {{ active_class(['admin.property-types.*']) }}">
+                            <a class="nav-link"
+                                href="{{ route('admin.property-types.index') }}">{{ __('أنواع العقارات') }}</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
             <li class="nav-item {{ active_class(['admin.complaints.*']) }}">
                 <a class="nav-link" href="{{ route('admin.complaints.index') }}">
                     <i class="menu-icon mdi mdi-alert"></i>

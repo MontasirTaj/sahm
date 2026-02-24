@@ -10,13 +10,15 @@ use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\AlertService;
+use Mpdf\Mpdf;
 
 class MarketplaceController extends Controller
 {
     public function index(Request $request)
     {
         $query = CentralShareOffer::on('central')
-            ->where('status', 'active');
+            ->where('status', 'active')
+            ->where('approval_status', 'real_estate_approved');
 
         // Filter by city
         if ($request->filled('city')) {
@@ -61,6 +63,7 @@ class MarketplaceController extends Controller
         // Get unique cities for filter dropdown
         $cities = CentralShareOffer::on('central')
             ->where('status', 'active')
+            ->where('approval_status', 'real_estate_approved')
             ->whereNotNull('city')
             ->where('city', '!=', '')
             ->distinct()
@@ -71,10 +74,11 @@ class MarketplaceController extends Controller
 
         // Get statistics
         $stats = [
-            'total_offers' => CentralShareOffer::on('central')->where('status', 'active')->count(),
+            'total_offers' => CentralShareOffer::on('central')->where('status', 'active')->where('approval_status', 'real_estate_approved')->count(),
             'total_cities' => $cities->count(),
             'avg_price' => CentralShareOffer::on('central')
                 ->where('status', 'active')
+                ->where('approval_status', 'real_estate_approved')
                 ->avg('price_per_share'),
         ];
 
@@ -242,6 +246,50 @@ class MarketplaceController extends Controller
             'available' => $available,
             'status' => $offer->status,
             'message' => $ok ? null : __('الكمية غير متاحة حالياً'),
+        ]);
+    }
+
+    public function generatePdf(Request $request, CentralShareOffer $offer)
+    {
+        // Check if offer is approved and has checkpoints
+        if ($offer->approval_status !== 'real_estate_approved' || $offer->realEstateCheckpoints->isEmpty()) {
+            abort(404, 'تقرير المراجعة العقارية غير متوفر');
+        }
+
+        $html = view('pdf.real-estate-report', [
+            'offer' => $offer,
+            'checkpoints' => $offer->realEstateCheckpoints,
+            'tenant' => $offer->tenant
+        ])->render();
+
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+            'margin_header' => 10,
+            'margin_footer' => 10,
+            'default_font' => 'dejavusans',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+        ]);
+
+        $mpdf->SetDirectionality('rtl');
+        $mpdf->WriteHTML($html);
+        
+        $filename = 'تقرير-المراجعة-العقارية-' . $offer->id . '.pdf';
+
+        if ($request->query('download')) {
+            return response()->streamDownload(function() use ($mpdf) {
+                echo $mpdf->Output('', 'S');
+            }, $filename, ['Content-Type' => 'application/pdf']);
+        }
+
+        return response($mpdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"'
         ]);
     }
 }

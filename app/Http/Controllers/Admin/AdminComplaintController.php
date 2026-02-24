@@ -85,7 +85,9 @@ class AdminComplaintController extends Controller
 
         if ($onlyUnreplied) {
             // في لوحة التحكم الأم: نريد البلاغات الجديدة التي لم يُرَد عليها ولم تتغير حالتها (ما زالت open)
+            // وأيضاً لم تُشاهد من قبل الأدمن
             $query->whereNull('admin_reply')
+                  ->whereNull('admin_seen_at')
                   ->where('status', 'open');
         }
 
@@ -106,6 +108,7 @@ class AdminComplaintController extends Controller
 
         $newUnreplied = TenantComplaint::where('status', 'open')
             ->whereNull('admin_reply')
+            ->whereNull('admin_seen_at')
             ->count();
 
         return response()->json([
@@ -118,5 +121,14 @@ class AdminComplaintController extends Controller
                 'new_unreplied' => (int) $newUnreplied,
             ],
         ]);
+    }
+
+    public function markComplaintAsSeen(TenantComplaint $complaint)
+    {
+        if (!$complaint->admin_seen_at) {
+            $complaint->admin_seen_at = now();
+            $complaint->save();
+        }
+        return response()->json(['success' => true]);
     }
 }

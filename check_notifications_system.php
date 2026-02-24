@@ -22,11 +22,11 @@ foreach ($buyers as $buyer) {
         ->where('buyer_id', $buyer->id)
         ->unread()
         ->count();
-    
+
     $totalCount = BuyerNotification::on('central')
         ->where('buyer_id', $buyer->id)
         ->count();
-    
+
     if ($totalCount > 0) {
         echo "مشتري: {$buyer->name}\n";
         echo "  - إجمالي التنبيهات: {$totalCount}\n";
@@ -56,7 +56,7 @@ if ($lastNotification) {
     echo "العنوان: {$lastNotification->title}\n";
     echo "الرسالة: {$lastNotification->message}\n";
     echo "النوع: {$lastNotification->type}\n";
-    echo "الحالة: " . ($lastNotification->is_read ? 'مقروء' : 'غير مقروء') . "\n";
+    echo 'الحالة: '.($lastNotification->is_read ? 'مقروء' : 'غير مقروء')."\n";
     echo "اللون: {$lastNotification->color}\n";
     echo "الأيقونة: {$lastNotification->icon}\n";
 }

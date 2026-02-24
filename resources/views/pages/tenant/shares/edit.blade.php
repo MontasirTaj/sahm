@@ -44,7 +44,27 @@
                     </div>
                     <div class="form-group">
                         <label>{{ __('المدينة') }}</label>
-                        <input name="city" class="form-control" value="{{ $offer->city }}" required>
+                        <select name="city" id="city-select" class="form-control" required>
+                            <option value="">{{ __('-- اختر المدينة --') }}</option>
+                            @foreach ($cities as $city)
+                                <option value="{{ $city->name }}"
+                                    {{ old('city', $offer->city) == $city->name ? 'selected' : '' }}>
+                                    {{ $city->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ __('نوع العقار') }} <span class="text-danger">*</span></label>
+                        <select name="property_type" class="form-control" required>
+                            <option value="">{{ __('-- اختر نوع العقار --') }}</option>
+                            @foreach ($propertyTypes as $type)
+                                <option value="{{ $type->name_ar }}"
+                                    {{ old('property_type', $offer->property_type) == $type->name_ar ? 'selected' : '' }}>
+                                    {{ $type->name_ar }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                     {{-- تم حذف العنوان التفصيلي من النموذج --}}
                     <div class="form-group">
@@ -101,8 +121,18 @@
                     <div class="form-group">
                         <label>{{ __('الحالة') }}</label>
                         <select name="status" class="form-control" required>
-                            @foreach (['draft', 'active', 'paused', 'completed', 'cancelled'] as $s)
-                                <option value="{{ $s }}" @selected($offer->status === $s)>{{ $s }}
+                            @php
+                                $statuses = [
+                                    'draft' => 'مسودة',
+                                    'active' => 'نشط',
+                                    'paused' => 'متوقف مؤقتاً',
+                                    'completed' => 'مكتمل',
+                                    'cancelled' => 'ملغي',
+                                ];
+                            @endphp
+                            @foreach ($statuses as $value => $label)
+                                <option value="{{ $value }}" @selected($offer->status === $value)>
+                                    {{ $label }}
                                 </option>
                             @endforeach
                         </select>
@@ -258,4 +288,32 @@
             -moz-appearance: textfield;
         }
     </style>
+@endpush
+
+@push('plugin-styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+@endpush
+
+@push('custom-scripts')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#city-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '{{ __('-- اختر المدينة --') }}',
+                allowClear: false,
+                language: {
+                    noResults: function() {
+                        return 'لا توجد نتائج';
+                    },
+                    searching: function() {
+                        return 'جاري البحث...';
+                    }
+                }
+            });
+        });
+    </script>
 @endpush

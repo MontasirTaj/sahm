@@ -27,8 +27,20 @@ class AdminAuthController extends Controller
         $remember = $request->boolean('remember');
 
         if (Auth::guard('web')->attempt($credentials, $remember)) {
+            // احصل على intended URL قبل تجديد الجلسة
+            $intended = $request->session()->get('url.intended');
+            
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+            
+            // امسح url.intended من الـ session بعد التجديد
+            $request->session()->forget('url.intended');
+            
+            // تصفية intended URL لتجنب التوجيه للإشعارات
+            if ($intended && !str_contains($intended, '/notifications/')) {
+                return redirect()->to($intended);
+            }
+            
+            return redirect()->route('admin.dashboard');
         }
 
         return back()

@@ -30,14 +30,17 @@ class AdminMarketController extends Controller
 
     public function alerts()
     {
+        // عرض كل التنبيهات (مقروءة وغير مقروءة)
         $alerts = Alert::on('central')->where('scope','admin')->orderByDesc('id')->paginate(30);
         return view('admin.market.alerts', compact('alerts'));
     }
 
     public function alertsFeed()
     {
+        // عرض فقط التنبيهات غير المقروءة في زر التنبيهات
         $items = Alert::on('central')
             ->where('scope','admin')
+            ->where('is_read', false)
             ->orderByDesc('id')
             ->limit(10)
             ->get()
@@ -55,5 +58,15 @@ class AdminMarketController extends Controller
             'recent' => $items->count(),
         ];
         return response()->json(['items' => $items, 'counts' => $counts]);
+    }
+
+    public function markAlertAsRead($id)
+    {
+        $alert = Alert::on('central')->find($id);
+        if ($alert && $alert->scope === 'admin') {
+            $alert->is_read = true;
+            $alert->save();
+        }
+        return response()->json(['success' => true]);
     }
 }

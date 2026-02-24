@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\TenantShareOffer;
 use App\Models\Tenant;
+use App\Models\City;
+use App\Models\Central\PropertyType;
 use App\Models\Central\ShareOffer as CentralShareOffer;
 use App\Services\ShareOfferSyncService;
 use Illuminate\Http\Request;
@@ -18,12 +20,34 @@ class TenantShareOfferController extends Controller
     public function index(string $subdomain)
     {
         $offers = TenantShareOffer::orderByDesc('id')->paginate(15);
+        
+        // جلب بيانات الموافقة من central لكل عرض
+        $centralOfferIds = $offers->pluck('central_offer_id')->filter();
+        if ($centralOfferIds->isNotEmpty()) {
+            $centralOffers = \App\Models\Central\ShareOffer::on('central')
+                ->whereIn('id', $centralOfferIds)
+                ->get()
+                ->keyBy('id');
+            
+            // إضافة بيانات الموافقة لكل عرض
+            foreach ($offers as $offer) {
+                if ($offer->central_offer_id && isset($centralOffers[$offer->central_offer_id])) {
+                    $centralOffer = $centralOffers[$offer->central_offer_id];
+                    $offer->approval_status = $centralOffer->approval_status;
+                    $offer->approval_progress = $centralOffer->approval_progress;
+                    $offer->rejection_notes = $centralOffer->rejection_notes;
+                }
+            }
+        }
+        
         return view('pages.tenant.shares.index', compact('offers','subdomain'));
     }
 
     public function create(string $subdomain)
     {
-        return view('pages.tenant.shares.create', compact('subdomain'));
+        $cities = City::on('central')->active()->ordered()->get();
+        $propertyTypes = PropertyType::on('central')->active()->ordered()->get();
+        return view('pages.tenant.shares.create', compact('subdomain', 'cities', 'propertyTypes'));
     }
 
     public function store(Request $request, string $subdomain, ShareOfferSyncService $sync)
@@ -34,15 +58,17 @@ class TenantShareOfferController extends Controller
             'description' => ['required','string'],
             'description_ar' => ['nullable','string'],
             'city' => ['required','string','max:64'],
+            'property_type' => ['required','string','max:100'],
             // address لم يعد مطلوبًا
             'total_shares' => ['required','integer','min:1'],
-            'available_shares' => ['required','integer','min:0','lte:total_shares'],
+            'available_shares' => ['required','integer','min:1','lte:total_shares'],
             'price_per_share' => ['required','numeric','min:0'],
             // currency لم يعد مطلوبًا
             'status' => ['nullable','in:draft,active,paused,completed,cancelled'],
             'images' => ['required','array','min:1','max:15'],
             'images.*' => ['required','image','mimes:jpg,jpeg,png,webp','max:5120'],
         ], [
+            'available_shares.min' => 'عدد الأسهم المتاحة يجب أن لا يقل عن سهم واحد',
             'images.required' => 'يجب إضافة صورة واحدة على الأقل للعرض',
             'images.min' => 'يجب إضافة صورة واحدة على الأقل للعرض',
             'images.*.required' => 'يجب أن يكون الملف صورة صالحة',
@@ -213,29 +239,56 @@ class TenantShareOfferController extends Controller
     public function edit(string $subdomain, int $share)
     {
         $offer = TenantShareOffer::on('tenant')->findOrFail($share);
+        
+        // منع التعديل بعد الموافقة النهائية
+        if ($offer->central_offer_id) {
+            $centralOffer = CentralShareOffer::on('central')->find($offer->central_offer_id);
+            if ($centralOffer && $centralOffer->approval_status === 'real_estate_approved') {
+                return redirect()->route('tenant.subdomain.shares.index', ['subdomain' => $subdomain])
+                    ->withErrors(['error' => 'لا يمكن تعديل العرض بعد الموافقة النهائية']);
+            }
+        }
+        
+        $cities = City::on('central')->active()->ordered()->get();
+        $propertyTypes = PropertyType::on('central')->active()->ordered()->get();
         return view('pages.tenant.shares.edit', [
             'subdomain' => $subdomain,
             'offer' => $offer,
+            'cities' => $cities,
+            'propertyTypes' => $propertyTypes,
         ]);
     }
 
     public function update(Request $request, string $subdomain, int $share, ShareOfferSyncService $sync)
     {
         $share = TenantShareOffer::on('tenant')->findOrFail($share);
+        
+        // منع التعديل بعد الموافقة النهائية
+        if ($share->central_offer_id) {
+            $centralOffer = CentralShareOffer::on('central')->find($share->central_offer_id);
+            if ($centralOffer && $centralOffer->approval_status === 'real_estate_approved') {
+                return redirect()->route('tenant.subdomain.shares.index', ['subdomain' => $subdomain])
+                    ->withErrors(['error' => 'لا يمكن تعديل العرض بعد الموافقة النهائية']);
+            }
+        }
+        
         $data = $request->validate([
             'title' => ['required','string','max:255'],
             'title_ar' => ['nullable','string','max:255'],
             'description' => ['required','string'],
             'description_ar' => ['nullable','string'],
             'city' => ['required','string','max:64'],
+            'property_type' => ['required','string','max:100'],
             // address لم يعد مطلوبًا
             'total_shares' => ['required','integer','min:1'],
-            'available_shares' => ['required','integer','min:0','lte:total_shares'],
+            'available_shares' => ['required','integer','min:1','lte:total_shares'],
             'price_per_share' => ['required','numeric','min:0'],
             // currency لم يعد مطلوبًا
             'status' => ['nullable','in:draft,active,paused,completed,cancelled'],
             'images' => ['nullable','array','max:15'],
             'images.*' => ['image','mimes:jpg,jpeg,png,webp','max:5120'],
+        ], [
+            'available_shares.min' => 'عدد الأسهم المتاحة يجب أن لا يقل عن سهم واحد',
         ]);
 
         // اجعل العملة ثابتة وتحفظ كود العملة دون عرضها

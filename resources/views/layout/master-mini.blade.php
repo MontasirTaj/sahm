@@ -293,6 +293,7 @@
                     @php($loggedIn = Illuminate\Support\Facades\Auth::guard('web')->check())
                     <a href="{{ route('marketplace.offers.index') }}">{{ __('العروض') }}</a>
                     <a href="{{ route('buyer.secondary-market.index') }}">{{ __('السوق الثانوي') }}</a>
+                    <a href="{{ route('guide') }}"><i class="mdi mdi-book-open-variant"></i> {{ __('الدليل الشامل') }}</a>
                     @if (!$loggedIn)
                         <a href="{{ route('landing') }}#plans">{{ __('Choose Your Plan') }}</a>
                         <a href="{{ route('static.about') }}">{{ __('app.about_title') }}</a>

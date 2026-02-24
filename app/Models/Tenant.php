@@ -15,4 +15,20 @@ class Tenant extends Model
         'IsActive', 'Notes', 'Status', 'CUserID', 'CDate', 'UUserID', 'UDate', 'DUserID', 'DDate',
         'DBName', 'DBHost', 'DBUser', 'DBPassword', 'DBPort'
     ];
+
+    /**
+     * Accessor للحصول على اسم المشترك
+     */
+    public function getNameAttribute()
+    {
+        return $this->TenantName;
+    }
+
+    /**
+     * Accessor للحصول على النطاق
+     */
+    public function getDomainAttribute()
+    {
+        return $this->Subdomain;
+    }
 }

@@ -24,11 +24,13 @@ class TenantComplaint extends Model
         'admin_reply',
         'admin_user_id',
         'admin_replied_at',
+        'admin_seen_at',
         'tenant_seen_at',
     ];
 
     protected $casts = [
         'admin_replied_at' => 'datetime',
+        'admin_seen_at' => 'datetime',
         'tenant_seen_at' => 'datetime',
     ];
 
